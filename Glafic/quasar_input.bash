@@ -9,16 +9,16 @@
 #SBATCH --exclusive
 
 # Dataset options
-los=with_los
-nimgs=2
+los=no_los
+nimgs=4
 infile=../limg_catalogs_${los}_${nimgs}.json
-inbase=./Quasars/input/${los}/nimgs_${nimgs} # Location of inputs for gravlens
+inbase=./Quasars/input/${los}/nimgs_${nimgs}
 outbase=./Quasars/results/${los}/nimgs_${nimgs}
 
 # Optimisation options
 restars_fitnr_1=1
-restars_fitnr_2=1
-restars_fitnr_3=3
+restars_fitnr_2=3
+restars_fitnr_3=1
 restars_fitnr_4=1
 
 #module purge
