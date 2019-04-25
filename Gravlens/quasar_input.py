@@ -35,7 +35,7 @@ def sl_sys_analysis():
         # Remove previous input files
         print('args["inbase"]', args["inbase"])
         os.system("rm "+args["inbase"]+"/optimize*")
-        #os.system("rm "+args["inbase"]+"/datafile*")
+        os.system("rm "+args["inbase"]+"/datafile*")
     
     args = comm.bcast(args)
 
@@ -91,13 +91,16 @@ def sl_sys_analysis():
             "sed -i '6s@.*@set zlens = "+str(system_prior['zl'])+"@' "+new_file_name
         )
         os.system(
+            "sed -i '14s@.*@set chimode = 0 @' "+new_file_name
+        )
+        os.system(
             "sed -i 's@data.*@data "+data_file_name+"@' "+new_file_name
         )
         # First Optimization: add fixed shear, reoptimize galaxy mass and e/PA
         os.system(
             "sed -i '18s@.*@set restart = "+args["restart_1"]+"@' "+new_file_name
         )
-        fit1_name = args["outbase"]+"/fit1_"+str(ii)
+        fit1_name = args["outbase"]+"/fit1_"+str(system["losID"])
         os.system(
             "sed -i '23s@.*@optimize "+fit1_name+"@' "+new_file_name
         )
@@ -108,7 +111,7 @@ def sl_sys_analysis():
         os.system(
             "sed -i '27s@.*@setlens "+fit1_name+".start@' "+new_file_name
         )
-        fit2_name = args["outbase"]+"/fit2_"+str(ii)
+        fit2_name = args["outbase"]+"/fit2_"+str(system["losID"])
         os.system(
             "sed -i 's@varyone.*@varyone 1 7 -90 90 37 " + \
             fit2_name+"@' "+new_file_name
@@ -120,21 +123,21 @@ def sl_sys_analysis():
         os.system(
             "sed -i '35s@.*@setlens "+fit2_name+".start@' "+new_file_name
         )
-        SIEPOI_name = args["outbase"]+"/SIE_POI_"+str(ii)
-        os.system(
-            "sed -i '38s@.*@optimize "+SIEPOI_name+"@' "+new_file_name
-        )
+        SIE_POI_name = args["outbase"]+"/SIE_POI_"+str(system["losID"])
+        #os.system(
+        #    "sed -i '38s@.*@optimize "+SIEPOI_name+"@' "+new_file_name
+        #)
         # Fourth Optimization: H0
         os.system(
-            "sed -i '41s@.*@#set restart = "+args["restart_4"]+".start@' "+new_file_name
+            "sed -i '41s@.*@set restart = "+args["restart_4"]+"@' "+new_file_name
         )
         os.system(
-            "sed -i '42s@.*@#setlens "+SIEPOI_name+".start@' "+new_file_name
+            "sed -i '42s@.*@setlens "+SIE_POI_name+".start@' "+new_file_name
             #"sed -i '40s@.*@ @' "+new_file_name
         )
-        fitH0_name = args["outbase"]+"/fitH0_"+str(ii)
+        fitH0_name = args["outbase"]+"/fitH0_"+str(system["losID"])
         os.system(
-            "sed -i '43s@.*@#varyh 0.5 0.9 51 "+fitH0_name+"@' "+new_file_name
+            "sed -i '43s@.*@varyh 0.5 0.9 101 "+fitH0_name+"@' "+new_file_name
             #"sed -i '41s@.*@ @' "+new_file_name
         )
         
