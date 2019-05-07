@@ -124,9 +124,9 @@ def sl_sys_analysis():
             "sed -i '35s@.*@setlens "+fit2_name+".start@' "+new_file_name
         )
         SIE_POI_name = args["outbase"]+"/SIE_POI_"+str(system["losID"])
-        #os.system(
-        #    "sed -i '38s@.*@optimize "+SIEPOI_name+"@' "+new_file_name
-        #)
+        os.system(
+            "sed -i '38s@.*@optimize "+SIE_POI_name+"@' "+new_file_name
+        )
         # Fourth Optimization: H0
         os.system(
             "sed -i '41s@.*@set restart = "+args["restart_4"]+"@' "+new_file_name
@@ -139,6 +139,10 @@ def sl_sys_analysis():
         os.system(
             "sed -i '43s@.*@varyh 0.5 0.9 101 "+fitH0_name+"@' "+new_file_name
             #"sed -i '41s@.*@ @' "+new_file_name
+        )
+        Rein_name = args["outbase"]+"/Rein_"+str(system["losID"])
+        os.system(
+            "sed -i '45s@.*@calcRein 3 "+Rein_name+"@' "+new_file_name
         )
         
         #Not Working

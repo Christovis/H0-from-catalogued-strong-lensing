@@ -1,15 +1,7 @@
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=15
-#SBATCH -t 04:00:00
-#SBATCH -J QUinput 
-#SBATCH -o QUinput.out
-#SBATCH -e QUinput.err
-#SBATCH -p cosma
-#SBATCH -A durham
-#SBATCH --exclusive
+# Create input files for Gravlens
 
 # Dataset options
-los=with_los
+los=no_los
 nimgs=2
 infile=../limg_catalogs_${los}_${nimgs}.json
 inbase=./Quasars/input/${los}/nimgs_${nimgs} # Location of inputs for gravlens
@@ -21,7 +13,7 @@ restars_fitnr_2=1
 restars_fitnr_3=3
 restars_fitnr_4=1
 
-#module purge
-#module load python/3.6.5
+module unload python
+module load python/3.6.5
 
 mpirun -np 15 python3 ./quasar_input.py $infile $inbase $outbase $restars_fitnr_1 $restars_fitnr_2 $restars_fitnr_3 $restars_fitnr_4
