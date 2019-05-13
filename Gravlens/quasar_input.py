@@ -36,7 +36,7 @@ def sl_sys_analysis():
         print('args["inbase"]', args["inbase"])
         os.system("rm "+args["inbase"]+"/optimize*")
         os.system("rm "+args["inbase"]+"/datafile*")
-    
+
     args = comm.bcast(args)
 
     # Organize devision of strong lensing systems
@@ -49,7 +49,7 @@ def sl_sys_analysis():
     with open("../lens_catalogs_sie_only.json", 'r') as myfile:
         limg_data = myfile.read()
     systems_prior = json.loads(limg_data)
-    
+   
     if comm_rank == 0:
         print("Each process will have %d systems" % sys_nr_per_proc)
         print("That should take app. %f min." % (sys_nr_per_proc*20))
@@ -57,8 +57,8 @@ def sl_sys_analysis():
     for ii in range(len(systems))[start_sys:end_sys]:
 
         system = systems[ii]
-        system_prior = systems_prior[ii]
-        
+        system_prior = systems_prior[system["losID"]]
+
         ## Write data-file
         data_file_name = args["inbase"] + \
                          "/datafile_"+str(ii)+".dat"
@@ -73,8 +73,8 @@ def sl_sys_analysis():
         for jj in range(system["nimgs"]):
             text_file.write("%s %s %s %s %s %s %s \n" %
                     (system["ximg"][jj], system["yimg"][jj],
-                    system["mags"][jj], str(1e-3),
-                    abs(float(system["mags"][jj]))*0.05,
+                    system["mu"][jj], str(1e-3),
+                    abs(float(system["mu"][jj]))*0.05,
                     system["delay"][jj], str(1e-3),
                     )
             )
@@ -144,6 +144,11 @@ def sl_sys_analysis():
         os.system(
             "sed -i '45s@.*@calcRein 3 "+Rein_name+"@' "+new_file_name
         )
+        #mu_name = args["outbase"]+"/magnification_"+str(system["losID"])+".dat"
+        #os.system(
+        #    "sed -i '50s@.*@findimg "+str(system["ys1"])+" " + \
+        #    str(system["ys2"])+" "+mu_name+"@' "+new_file_name
+        #)
         
         #Not Working
         #subprocess.call(["./lensmodel", new_file_name])
