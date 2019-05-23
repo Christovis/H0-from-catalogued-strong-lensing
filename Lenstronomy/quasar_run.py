@@ -54,7 +54,7 @@ def sl_sys_analysis():
         print("That should take app. %f min." % (sys_nr_per_proc * 20))
 
     results = {"D_dt": []}
-    for ii in range(len(systems))[:20]:
+    for ii in range(len(systems))[(start_sys + 2) : end_sys]:
         system = systems[ii]
         system_prior = systems_prior[ii]
         print("Analysing system ID: %d" % system["losID"])
@@ -87,7 +87,7 @@ def sl_sys_analysis():
         flux_ratio_errors = np.ones(system["nimgs"] - 1) * args["flux_ratio_errors"]
 
         # lens model choices
-        lens_model_list = ["SPEMD", "SHEAR"]
+        lens_model_list = ["SPEP", "SHEAR"]
         # first choice: SPEP
         fixed_lens = []
         kwargs_lens_init = []
@@ -98,11 +98,11 @@ def sl_sys_analysis():
         kwargs_lens_init.append(
             {
                 "theta_E": 1.0,
-                "e1": 0,
-                "e2": 0.0,
                 "gamma": 2,
                 "center_x": 0,
                 "center_y": 0,
+                "e1": 0,
+                "e2": 0.0,
             }
         )
         kwargs_lens_sigma.append(
@@ -142,9 +142,9 @@ def sl_sys_analysis():
         kwargs_lower_lens.append({"e1": -0.2, "e2": -0.2})
         kwargs_upper_lens.append({"e1": 0.2, "e2": 0.2})
         lens_params = [
-            fixed_lens,
             kwargs_lens_init,
             kwargs_lens_sigma,
+            fixed_lens,
             kwargs_lower_lens,
             kwargs_upper_lens,
         ]
