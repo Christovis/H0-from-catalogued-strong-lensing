@@ -30,6 +30,10 @@ def sl_sys_analysis():
         args["infile"] = sys.argv[1]
         args["nimgs"] = sys.argv[2]
         args["los"] = sys.argv[3]
+        args["dt_sigma"] = float(sys.argv[4])
+        args["image_amps_sigma"] = float(sys.argv[5])
+        args["flux_ratio_errors"] = float(sys.argv[6])
+        args["astrometry_sigma"] = float(sys.argv[7])
 
     args = comm.bcast(args)
     # Organize devision of strong lensing systems
@@ -37,8 +41,10 @@ def sl_sys_analysis():
         limg_data = myfile.read()
     systems = json.loads(limg_data)
     sys_nr_per_proc = int(len(systems) / comm_size)
+    print('comm_rank', comm_rank)
     start_sys = sys_nr_per_proc * comm_rank
     end_sys = sys_nr_per_proc * (comm_rank + 1)
+    print(start_sys, end_sys)
     with open("../lens_catalogs_sie_only.json", "r") as myfile:
         limg_data = myfile.read()
     systems_prior = json.loads(limg_data)
@@ -48,60 +54,55 @@ def sl_sys_analysis():
         print("That should take app. %f min." % (sys_nr_per_proc * 20))
 
     results = {"D_dt": []}
-    for ii in range(len(systems))[(start_sys + 2) : end_sys]:
+    for ii in range(len(systems))[:20]:
         system = systems[ii]
         system_prior = systems_prior[ii]
         print("Analysing system ID: %d" % system["losID"])
-
+        print(system)
         # the data set is
         z_lens = system_prior["zl"]
         z_source = 2.0
 
-        # image positions units of arcsec
-        # time delays units of days
-        # image brightness
-        # amplitude (in arbitrary linear units, not magnitudes)
-        ximg = []
-        yimg = []
-        delay = []
-        image_amps = []
+        # multiple images properties
+        ximg = np.zeros(system["nimgs"])
+        yimg = np.zeros(system["nimgs"])
+        delay = np.zeros(system["nimgs"])
+        image_amps = np.zeros(system["nimgs"])
         for jj in range(system["nimgs"]):
-            ximg.append(system["ximg"][jj])
-            yimg.append(system["yimg"][jj])
-            delay.append(system["delay"][jj])
-            image_amps.append(system["mags"][jj])
-        ximg = np.asarray(ximg)
-        yimg = np.asarray(yimg)
-        # 1-sigma astrometric uncertainties of the image positions
-        # (assuming equal precision)
-        astrometry_sigma = 0.004
-        delay = np.asarray(delay)
+            ximg[jj] = system["ximg"][jj]        #[arcsec]
+            yimg[jj] = system["yimg"][jj]        #[arcsec]
+            delay[jj] = system["delay"][jj]      #[days]
+            image_amps[jj] = system["mags"][jj]  #[linear units or magnitudes]
+        # sort by arrival time
+        index_sort = np.argsort(delay)
+        ximg = ximg[index_sort]
+        yimg = yimg[index_sort]
+        delay = delay[index_sort]
+        image_amps = image_amps[index_sort]
         d_dt = delay[1:] - delay[0]
-        # 1-sigma uncertainties in the time-delay measurement (in units of days)
-        d_dt_sigma = np.ones(system["nimgs"] - 1) * 2
-        image_amps = np.asarray(image_amps)
-        image_amps_sigma = np.ones(system["nimgs"]) * 0.3
+        # measurement uncertainties
+        d_dt_sigma = np.ones(system["nimgs"] - 1) * args["dt_sigma"]
+        image_amps_sigma = np.ones(system["nimgs"]) * args["image_amps_sigma"]
         flux_ratios = image_amps[1:] - image_amps[0]
-        flux_ratio_errors = np.ones(system["nimgs"] - 1) * 0.1
+        flux_ratio_errors = np.ones(system["nimgs"] - 1) * args["flux_ratio_errors"]
 
-        # lens model choicers
-        lens_model_list = ["SPEP", "SHEAR"]
-
+        # lens model choices
+        lens_model_list = ["SPEMD", "SHEAR"]
+        # first choice: SPEP
         fixed_lens = []
         kwargs_lens_init = []
         kwargs_lens_sigma = []
         kwargs_lower_lens = []
         kwargs_upper_lens = []
-
         fixed_lens.append({})
         kwargs_lens_init.append(
             {
                 "theta_E": 1.0,
+                "e1": 0,
+                "e2": 0.0,
                 "gamma": 2,
                 "center_x": 0,
                 "center_y": 0,
-                "e1": 0,
-                "e2": 0.0,
             }
         )
         kwargs_lens_sigma.append(
@@ -134,16 +135,16 @@ def sl_sys_analysis():
                 "center_y": 10,
             }
         )
-
+        # second choice: SHEAR
         fixed_lens.append({"ra_0": 0, "dec_0": 0})
         kwargs_lens_init.append({"e1": 0.0, "e2": 0.0})
         kwargs_lens_sigma.append({"e1": 0.1, "e2": 0.1})
         kwargs_lower_lens.append({"e1": -0.2, "e2": -0.2})
         kwargs_upper_lens.append({"e1": 0.2, "e2": 0.2})
         lens_params = [
+            fixed_lens,
             kwargs_lens_init,
             kwargs_lens_sigma,
-            fixed_lens,
             kwargs_lower_lens,
             kwargs_upper_lens,
         ]
@@ -151,8 +152,11 @@ def sl_sys_analysis():
         point_source_list = ["LENSED_POSITION"]
         fixed_ps = [
             {"ra_image": ximg, "dec_image": yimg}
-        ]  # we fix the image position coordinates
+        ]
         kwargs_ps_init = fixed_ps
+        # let some freedome in how well the actual image positions are
+        # matching those given by the data (indicated as 'ra_image', 'dec_image'
+        # and held fixed while fitting)
         kwargs_ps_sigma = [
             {
                 "ra_image": 0.01 * np.ones(len(ximg)),
@@ -166,7 +170,8 @@ def sl_sys_analysis():
             }
         ]
         kwargs_upper_ps = [
-            {"ra_image": 10 * np.ones(len(ximg)), "dec_image": 10 * np.ones(len(ximg))}
+            {"ra_image": 10 * np.ones(len(ximg)),
+             "dec_image": 10 * np.ones(len(ximg))}
         ]
 
         ps_params = [
@@ -177,8 +182,6 @@ def sl_sys_analysis():
             kwargs_upper_ps,
         ]
 
-        # we let some freedome in how well the actual image positions are matching those
-        # given by the data (indicated as 'ra_image', 'dec_image' and held fixed while fitting)
         fixed_cosmo = {}
         kwargs_cosmo_init = {
             "D_dt": 5000,
@@ -187,8 +190,8 @@ def sl_sys_analysis():
         }
         kwargs_cosmo_sigma = {
             "D_dt": 10000,
-            "delta_x_image": np.ones_like(ximg) * astrometry_sigma,
-            "delta_y_image": np.ones_like(ximg) * astrometry_sigma,
+            "delta_x_image": np.ones_like(ximg) * args["astrometry_sigma"],
+            "delta_y_image": np.ones_like(ximg) * args["astrometry_sigma"],
         }
         kwargs_lower_cosmo = {
             "D_dt": 0,
@@ -214,13 +217,14 @@ def sl_sys_analysis():
             "cosmography": cosmo_params,
         }
 
-        # ## setup options for likelihood and parameter sampling
+        # setup options for likelihood and parameter sampling
         kwargs_constraints = {
-            "num_point_source_list": [4],
+            "num_point_source_list": [int(args["nimgs"])],
             # any proposed lens model must satisfy the image positions
             # appearing at the position of the point sources being sampeld
             "solver_type": "PROFILE_SHEAR",
-            "cosmo_type": "D_dt",  # sampling of the time-delay distance
+            "cosmo_type": "D_dt",
+            # sampling of the time-delay distance
             # explicit modelling of the astrometric imperfection of
             # the point source positions
             "point_source_offset": True,
@@ -228,7 +232,7 @@ def sl_sys_analysis():
         kwargs_likelihood = {
             "check_bounds": True,
             "point_source_likelihood": True,
-            "position_uncertainty": astrometry_sigma,
+            "position_uncertainty": args["astrometry_sigma"],
             "check_solver": True,
             "solver_tolerance": 0.001,
             "time_delay_likelihood": True,
@@ -324,12 +328,12 @@ def sl_sys_analysis():
         lensCosmo = LensCosmo(z_lens=z_lens, z_source=z_source)
         results["D_dt"].append(D_dt)
 
-    f = h5py.File(
+    hf = h5py.File(
         "H0_"
         + args["los"]
         + "_nimgs"
         + str(args["nimgs"])
-        + "_"
+        + "_cpu"
         + str(comm_rank)
         + ".hdf5",
         "w",
