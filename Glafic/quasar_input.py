@@ -25,7 +25,7 @@ def sl_sys_analysis():
     # Get command line arguments
     args = {}
     if comm_rank == 0:
-        print(":Registered %d processes" % comm_size)
+        print("Registered %d processes" % comm_size)
         args["infile"] = sys.argv[1]
         args["inbase"] = sys.argv[2]
         args["outbase"] = sys.argv[3]
@@ -35,9 +35,9 @@ def sl_sys_analysis():
         args["dt_error"] = sys.argv[7]
 
         # Remove previous input files
-        print('args["inbase"]', args["inbase"])
         os.system("rm " + args["inbase"] + "/optimize*")
-        # os.system("rm "+args["inbase"]+"/datafile*")
+        os.system("rm " + args["inbase"] + "/prior*")
+        os.system("rm " + args["inbase"] + "/source_obs_*")
 
     args = comm.bcast(args)
 
@@ -92,49 +92,54 @@ def sl_sys_analysis():
         text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 5, 5.0, 175.0))
         # core-radius
         text_file.write("range lens %d %d %.2f %.1f \n" % (1, 6, 1.0, 5.0))
+        # hubble const.
+        text_file.write("range hubble %.2f %.2f \n" % (0.5, 0.9))
 
         # Optimization file
         template_name = args["templates"] + "/template_optimize.input"
-        new_file_name = args["templates"] + "/optimize_" + str(ii) + ".input"
+        new_file_name = args["inbase"] + "/optimize_" + str(ii) + ".input"
         copyfile(template_name, new_file_name)
         os.system("sed -i '6s@.*@zl " + str(system_prior["zl"]) + "@' " + new_file_name)
-        os.system("sed -i '7s@.*@prefix fitH0_" + str(ii) + "@' " + new_file_name)
+        os.system(
+            "sed -i '7s@.*@prefix "
+            + args["outbase"]
+            + "/fitH0_"
+            + str(ii)
+            + "@' "
+            + new_file_name
+        )
         # Define lenses and sources
         os.system(
             "sed -i '25s@.*@  lens sie 100.0 0.0 0.0 1.0 1.0 1.0 0.0"
             + "@' "
             + new_file_name
         )
-        os.system(
-            "sed -i '26s@.*@  point 2.0 0.0 0.0"
-            + "@' "
-            + new_file_name
-        )
+        os.system("sed -i '26s@.*@  point 2.0 0.0 0.0" + "@' " + new_file_name)
         # Define optimization routine
-        os.system(
-            "sed -i '31s@.*@  1 1 1 1 1 1 0"
-            + "@' "
-            + new_file_name
-        )
-        os.system(
-            "sed -i '32s@.*@  0 1 1"
-            + "@' "
-            + new_file_name
-        )
+        os.system("sed -i '31s@.*@  1 1 1 1 1 1 0" + "@' " + new_file_name)
+        os.system("sed -i '32s@.*@  0 0 0" + "@' " + new_file_name)
         # Define executione commands
         os.system("sed -i '36s@.*@start_command@' " + new_file_name)
         os.system(
-            "sed -i '38s@.*@readobs_point source_obs_"
+            "sed -i '38s@.*@readobs_point "
+            + args["inbase"]
+            + "/source_obs_"
             + str(ii)
             + ".dat"
             + "@' "
             + new_file_name
         )
         os.system(
-            "sed -i '39s@.*@parprior prior_" + str(ii) + ".dat" + "@' " + new_file_name
+            "sed -i '39s@.*@parprior "
+            + args["inbase"]
+            + "/prior_"
+            + str(ii)
+            + ".dat"
+            + "@' "
+            + new_file_name
         )
         SIEPOI_name = args["outbase"] + "/SIE_POI_" + str(ii)
-        os.system("sed -i '41s@.*@optimize " + SIEPOI_name + "@' " + new_file_name)
+        os.system("sed -i '41s@.*@optimize point@' " + new_file_name)
 
         # Not Working
         # subprocess.call(["./lensmodel", new_file_name])
