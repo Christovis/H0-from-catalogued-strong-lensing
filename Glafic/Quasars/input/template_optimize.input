@@ -1,0 +1,45 @@
+# setting primary parameters
+omega     0.3089
+lambda    0.6911
+weos     -1.0
+hubble    0.6774
+zl        0.50175
+prefix    out_sdss1004
+xmin     -10.0
+ymin     -10.0
+xmax      10.0
+ymax      10.0
+pix_poi   0.04
+maxlev    6
+
+# some examples of secondary parameters
+chi2_splane    1  # uses chi^2 on source plane (less accurate)
+chi2_checknimg 1
+chi2_usemag    1  # use magnitude difference instead of flux ratio
+chi2_restart   -1
+hvary          1  # vary H0 during optimization
+ran_seed       -46158
+
+# define lenses and sources
+startup 1 0 1
+    lens sie sigma x y e pa 1.0e0 0.0e0
+    point source_redshift xpos ypos
+end_startup
+
+# for optimizations
+start_setopt
+    1 1 1 1 1 1 0 
+    0 0 0
+end_setopt
+
+## execute commands
+start_command
+
+readobs_point obs_sdss1004.dat
+parprior prior_sdss1004.dat
+
+optimize
+
+#varycosmo hubble 0.5 0.9 50
+
+quit
