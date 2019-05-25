@@ -53,6 +53,7 @@ def sl_sys_analysis():
     systems_prior = json.loads(limg_data)
 
     if comm_rank == 0:
+        print("There are in total %d strong-lensing systems" % len(systems))
         print("Each process will have %d systems" % sys_nr_per_proc)
         print("That should take app. %f min." % (sys_nr_per_proc * 20))
 
@@ -140,7 +141,9 @@ def sl_sys_analysis():
         )
         SIEPOI_name = args["outbase"] + "/SIE_POI_" + str(ii)
         os.system("sed -i '41s@.*@optimize point@' " + new_file_name)
-
+        os.system("sed -i '42s@.*@calcein2 2.0 0.0 0.0 1@' " + new_file_name)
+        os.system("sed -i '43s@.*@findimg @' " + new_file_name)
+        
         # Not Working
         # subprocess.call(["./lensmodel", new_file_name])
 
