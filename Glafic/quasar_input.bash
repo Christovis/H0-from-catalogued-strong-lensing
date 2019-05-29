@@ -9,9 +9,9 @@
 #SBATCH --exclusive
 
 # Dataset options
-los=no_los
-nimgs=2
-version=b  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
+los=with_los
+nimgs=4
+version=c  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
 infile=../limg_catalogs_${los}_${nimgs}_${version}.json
 inbase=./Quasars/input/${los}/nimgs_${nimgs}
 templates=./Quasars/input

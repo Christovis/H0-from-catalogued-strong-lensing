@@ -14,17 +14,10 @@ args = {}
 args["outdirstr"] = sys.argv[1]
 args["los"] = sys.argv[2]
 args["nimgs"] = sys.argv[3]
+args["version"] = sys.argv[4]
 outdir = os.fsencode(args["outdirstr"])
 
-mass_scale = []
-lens_pos = []
-ellipticity = []
-position_angle = []
-shear = []
-shear_angle = []
-hubble_const = []
-resdir = []
-
+resdir = []  # initialize output dictionary
 
 # Run through files
 for file in os.listdir(outdir):
@@ -63,7 +56,6 @@ for file in os.listdir(outdir):
 
                 
                 elif 'images:' in lines[index].split():
-                    
                     if args["nimgs"] == "2":
                         # collect image 
                         image_a = lines[index+1].split()
@@ -85,7 +77,6 @@ for file in os.listdir(outdir):
                         x2_2 = x2[index[1]]
                         mu_2 = mu[index[1]]
                         dt_2 = dt[index[1]]
-
                     
                     elif args["nimgs"] == "4":
                         # collect image 
@@ -232,22 +223,6 @@ for file in os.listdir(outdir):
             })
 
 
-with open("./quasars_%s_nimgs_%s.csv" % (args["los"], args["nimgs"]), 'w') as fout:
+with open("./quasars_%s_nimgs_%s_%s.json" % (args["los"], args["nimgs"], args["version"]), 'w') as fout:
     json.dump(resdir, fout)
-
-#lens_pos = np.asarray(lens_pos).T
-#print(np.median(hubble_const))
-#print(len(mass_scale), len(lens_pos[0, :]), len(hubble_const),
-#      np.shape(ellipticity), np.shape(position_angle), np.shape(shear_angle))
-#df = pd.DataFrame({
-#    'MS' : mass_scale,
-#    'LPX' : lens_pos[0, :],
-#    'LPY' : lens_pos[1, :],
-#    'ELL' : ellipticity,
-#    'PA' : position_angle,
-#    'SHE' : shear,
-#    'SA' : shear_angle,
-#    'H0' : hubble_const,
-#})
-#df.to_csv("./quasars_with_los.csv", index=True)
 
