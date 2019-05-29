@@ -30,9 +30,11 @@ def sl_sys_analysis():
         args["inbase"] = sys.argv[2]
         args["outbase"] = sys.argv[3]
         args["templates"] = sys.argv[4]
-        args["pos_error"] = sys.argv[5]
-        args["mu_error"] = sys.argv[6]
-        args["dt_error"] = sys.argv[7]
+        args["los"] = sys.argv[5]
+        args["pos_error"] = sys.argv[6]
+        args["mu_error"] = sys.argv[7]
+        args["dt_error"] = sys.argv[8]
+        args["priors"] = bool(sys.argv[8])
 
         # Remove previous input files
         os.system("rm " + args["inbase"] + "/optimize*")
@@ -72,12 +74,12 @@ def sl_sys_analysis():
                 % (
                     system["ximg"][jj],
                     system["yimg"][jj],
-                    system["mu"][jj],
+                    abs(system["mu"][jj]),
                     args["pos_error"],
                     abs(system["mu"][jj]) * float(args["mu_error"]),
                     system["delay"][jj],
                     args["dt_error"],
-                    str(1),
+                    str(0),
                 )
             )
         text_file.close()
@@ -85,14 +87,19 @@ def sl_sys_analysis():
         # Prior file (only for lens possible, not for point-source)
         data_file_name = args["inbase"] + "/prior_" + str(ii) + ".dat"
         text_file = open(data_file_name, "w")
-        # velocity disperison [km/sec]
-        text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 1, 50.0, 350.0))
-        # ellipticity
-        text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 4, 0.05, 0.5))
-        # position-angle
-        text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 5, 5.0, 175.0))
-        # core-radius
-        text_file.write("range lens %d %d %.2f %.1f \n" % (1, 6, 1.0, 5.0))
+        # sie:velocity disperison [km/sec]
+        text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 1, 300.0, 150.0))
+        if args["priors"] is True:
+            # sie:ellipticity
+            text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 4, 0.5, 0.4))
+            # sie:position-angle
+            text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 5, 175.0, 170.0))
+            # sie:core-radius
+            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 6, 0.0, 1.0))
+        # pert: match x-pos to lens
+        text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,2,1,2,1.0,0.0))
+        # pert: match y-pos to lens
+        text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,3,1,3,1.0,0.0))
         # hubble const.
         text_file.write("range hubble %.2f %.2f \n" % (0.5, 0.9))
 
@@ -110,19 +117,26 @@ def sl_sys_analysis():
             + new_file_name
         )
         # Define lenses and sources
+        os.system("sed -i '24s@.*@startup 2 0 1" + "@' " + new_file_name)
         os.system(
-            "sed -i '25s@.*@  lens sie 100.0 0.0 0.0 1.0 1.0 1.0 0.0"
+            "sed -i '25s@.*@  lens sie 300.0 0.0 0.0 0.5 1.0 0.1 0.0"
             + "@' "
             + new_file_name
         )
-        os.system("sed -i '26s@.*@  point 2.0 0.0 0.0" + "@' " + new_file_name)
-        # Define optimization routine
-        os.system("sed -i '31s@.*@  1 1 1 1 1 1 0" + "@' " + new_file_name)
-        os.system("sed -i '32s@.*@  0 0 0" + "@' " + new_file_name)
-        # Define executione commands
-        os.system("sed -i '36s@.*@start_command@' " + new_file_name)
         os.system(
-            "sed -i '38s@.*@readobs_point "
+            "sed -i '26s@.*@  lens pert 2.0 0.0 0.0 3.958251e-02 5.182124e+01 0.0 0.0"
+            + "@' "
+            + new_file_name
+        )
+        os.system("sed -i '27s@.*@  point 2.0 0.0 0.0" + "@' " + new_file_name)
+        # Define optimization routine
+        os.system("sed -i '32s@.*@  1 1 1 1 1 1 0" + "@' " + new_file_name)
+        os.system("sed -i '33s@.*@  0 0 0 1 1 0 0" + "@' " + new_file_name)
+        os.system("sed -i '34s@.*@  0 1 1" + "@' " + new_file_name)
+        # Define executione commands
+        os.system("sed -i '38s@.*@start_command@' " + new_file_name)
+        os.system(
+            "sed -i '40s@.*@readobs_point "
             + args["inbase"]
             + "/source_obs_"
             + str(ii)
@@ -131,7 +145,7 @@ def sl_sys_analysis():
             + new_file_name
         )
         os.system(
-            "sed -i '39s@.*@parprior "
+            "sed -i '41s@.*@parprior "
             + args["inbase"]
             + "/prior_"
             + str(ii)
@@ -140,9 +154,10 @@ def sl_sys_analysis():
             + new_file_name
         )
         SIEPOI_name = args["outbase"] + "/SIE_POI_" + str(ii)
-        os.system("sed -i '41s@.*@optimize point@' " + new_file_name)
-        os.system("sed -i '42s@.*@calcein2 2.0 0.0 0.0 1@' " + new_file_name)
-        os.system("sed -i '43s@.*@findimg @' " + new_file_name)
+        os.system("sed -i '43s@.*@optimize @' " + new_file_name)
+        os.system("sed -i '44s@.*@resetopt_lens @' " + new_file_name)
+        os.system("sed -i '45s@.*@calcein 2.0 @' " + new_file_name)
+        os.system("sed -i '46s@.*@findimg @' " + new_file_name)
         
         # Not Working
         # subprocess.call(["./lensmodel", new_file_name])
