@@ -34,9 +34,10 @@ def sl_sys_analysis():
         args["restart_2"] = sys.argv[6]
         args["restart_3"] = sys.argv[7]
         args["restart_4"] = sys.argv[8]
-        args["pos_error"] = sys.argv[9]
-        args["mu_error"] = sys.argv[10]
-        args["dt_error"] = sys.argv[11]
+        args["restart_5"] = sys.argv[9]
+        args["pos_error"] = sys.argv[10]
+        args["mu_error"] = sys.argv[11]
+        args["dt_error"] = sys.argv[12]
 
         # Remove previous input files
         print('args["inbase"]', args["inbase"])
@@ -52,10 +53,10 @@ def sl_sys_analysis():
     sys_nr_per_proc = int(len(systems) / comm_size)
     start_sys = sys_nr_per_proc * comm_rank
     end_sys = sys_nr_per_proc * (comm_rank + 1)
-    
-    #with open("../lens_catalogs_sie_only.json", "r") as myfile:
+
+    # with open("../lens_catalogs_sie_only.json", "r") as myfile:
     #    limg_data = myfile.read()
-    #systems_prior = json.loads(limg_data)
+    # systems_prior = json.loads(limg_data)
 
     if comm_rank == 0:
         print("Each process will have %d systems" % sys_nr_per_proc)
@@ -64,11 +65,11 @@ def sl_sys_analysis():
     for ii in range(len(systems))[start_sys:end_sys]:
 
         system = systems[ii]
-        #system_prior = systems_prior[system["losID"]]
+        # system_prior = systems_prior[system["losID"]]
 
-        ## Write data-file
-        data_file_name = args["inbase"] + "/datafile_" + str(ii) + ".dat"
-        text_file = open(data_file_name, "w")
+        # Write data-file #######################################################
+        data_fname = args["inbase"] + "/datafile_" + str(ii) + ".dat"
+        text_file = open(data_fname, "w")
         text_file.write("1                # Nr. of lens galaxy \n")
         text_file.write("0.0 0.0 3.0e-03  # position \n")
         text_file.write("0.0 10000.0      # R_eff \n")
@@ -91,76 +92,83 @@ def sl_sys_analysis():
             )
         text_file.close()
 
-        ## Write optimization-file
-        template_name = (
-            "/cosma7/data/dp004/dc-beck3/H0_measure/Gravlens/"
-            + "Quasars/input/template_optimize.in"
-        )
-        new_file_name = args["inbase"] + "/optimize_" + str(ii) + ".in"
-        # "/Proc"+str(comm_rank)+"_optimize_"+str(ii)+".in"
-        copyfile(template_name, new_file_name)
-        #os.system(
-        #    "sed -i '6s@.*@set zlens = "
-        #    + str(system_prior["zl"])
-        #    + "@' "
-        #    + new_file_name
-        #)
-        os.system("sed -i '14s@.*@set chimode = 0 @' " + new_file_name)
-        os.system("sed -i 's@data.*@data " + data_file_name + "@' " + new_file_name)
-        # First Optimization: add fixed shear, reoptimize galaxy mass and e/PA
-        os.system(
-            "sed -i '18s@.*@set restart = " + args["restart_1"] + "@' " + new_file_name
-        )
-        fit1_name = args["outbase"] + "/fit1_" + str(ii) #str(system["losID"])
-        os.system("sed -i '23s@.*@optimize " + fit1_name + "@' " + new_file_name)
-        # Second Optimization: optimize shear along with galaxy mass and e/PA
-        os.system(
-            "sed -i '26s@.*@set restart = " + args["restart_2"] + "@' " + new_file_name
-        )
-        os.system("sed -i '27s@.*@setlens " + fit1_name + ".start@' " + new_file_name)
-        fit2_name = args["outbase"] + "/fit2_" + str(ii) #str(system["losID"])
-        os.system(
-            "sed -i 's@varyone.*@varyone 1 7 -90 90 37 "
-            + fit2_name
-            + "@' "
-            + new_file_name
-        )
-        # Third Optimization: optimize everything
-        os.system(
-            "sed -i '34s@.*@set restart = " + args["restart_3"] + "@' " + new_file_name
-        )
-        os.system("sed -i '35s@.*@setlens " + fit2_name + ".start@' " + new_file_name)
-        SIE_POI_name = args["outbase"] + "/SIE_POI_" + str(ii) #str(system["losID"])
-        os.system("sed -i '38s@.*@optimize " + SIE_POI_name + "@' " + new_file_name)
+        # Write optimization-file ###############################################
+        optimize_fname = args["inbase"] + "/optimize_" + str(ii) + ".in"
+        text_file = open(optimize_fname, "w")
+        text_file.write("# Cosmological parameters\n")
+        text_file.write("set omega = 0.3089\n")
+        text_file.write("set lambda = 0.6911\n")
+        text_file.write("set hvale = 1.0e2\n")
+        text_file.write("set zlens = 0.5\n")
+        text_file.write("set zsrc = 2.0\n")
+        text_file.write("\n")
+        text_file.write("# Lensmodel inputs\n")
+        text_file.write("set checkparity = 0\n")
+        text_file.write("set omitcore 1.0e-6\n")
+        text_file.write("set upenalty 1.0e-4\n")
+        text_file.write("set gridflag = 0\n")
+        text_file.write("set chimode = 0  # source plane\n")
+        text_file.write("data %s\n" % data_fname)
+        text_file.write("\n")
+        optimized_file_nr = 1
+        if int(args["restart_1"]) > 0:
+            # First Optimization: at fixed shear, reoptimize galaxy mass and e/PA
+            text_file.write("# 1st Opt.: add fixed shear, reoptimize galaxy mass and e/PA\n")
+            text_file.write("set restart = %s\n" % args["restart_1"])
+            text_file.write("setlens 1 1\n")
+            text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
+            text_file.write("1 0 0 1 1 0 0 0 0 0\n")
+            fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
+            text_file.write("optimize %s\n" % fit_name)
+            text_file.write("\n")
+            optimized_file_nr += 1
+        if int(args["restart_2"]) > 0:
+            # Second Optimization: optimize shear along with galaxy mass and e/PA
+            text_file.write("# 2nd Opt.: optimize shear along with galaxy mass and e/PA\n")
+            text_file.write("set restart = %s\n" % args["restart_2"])
+            text_file.write("setlens %s.start\n" % fit_name)
+            text_file.write("changevary 1\n")
+            text_file.write("1 0 0 1 1 1 1 0 0 0\n")
+            fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
+            text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
+            text_file.write("\n")
+            optimized_file_nr += 1
+        if int(args["restart_3"]) > 0:
+            # Third Optimization: optimize density slope
+            text_file.write("# 3rd Opt.: optimize density slope\n")
+            text_file.write("set restart = %s\n" % args["restart_3"])
+            text_file.write("setlens %s.start\n" % fit_name)
+            text_file.write("changevary 1\n")
+            text_file.write("1 0 0 0 0 0 0 0 0 1\n")
+            fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
+            text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
+            text_file.write("\n")
+            optimized_file_nr += 1
+        if int(args["restart_4"]) > 0:
+            # Fourth Optimization: optimize everything
+            text_file.write("# 4th Opt.: optimize everything\n")
+            text_file.write("set restart = %s\n" % args["restart_4"])
+            text_file.write("setlens %s.start\n" % fit_name)
+            text_file.write("changevary 1\n")
+            text_file.write("1 1 1 1 1 1 1 0 0 0\n")
+            fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
+            text_file.write("optimize %s\n" % fit_name)
+            text_file.write("\n")
+            optimized_file_nr += 1
         # Fourth Optimization: H0
-        os.system(
-            "sed -i '41s@.*@set restart = " + args["restart_4"] + "@' " + new_file_name
-        )
-        os.system(
-            "sed -i '42s@.*@setlens "
-            + SIE_POI_name
-            + ".start@' "
-            + new_file_name
-            # "sed -i '40s@.*@ @' "+new_file_name
-        )
-        fitH0_name = args["outbase"] + "/fitH0_" + str(ii) #str(system["losID"])
-        os.system(
-            "sed -i '43s@.*@varyh 0.5 0.9 101 "
-            + fitH0_name
-            + "@' "
-            + new_file_name
-            # "sed -i '41s@.*@ @' "+new_file_name
-        )
-        Rein_name = args["outbase"] + "/Rein_" + str(ii) #str(system["losID"])
-        os.system("sed -i '45s@.*@calcRein 3 " + Rein_name + "@' " + new_file_name)
-        # mu_name = args["outbase"]+"/magnification_"+str(system["losID"])+".dat"
-        # os.system(
-        #    "sed -i '50s@.*@findimg "+str(system["ys1"])+" " + \
-        #    str(system["ys2"])+" "+mu_name+"@' "+new_file_name
-        # )
-
-        # Not Working
-        # subprocess.call(["./lensmodel", new_file_name])
+        text_file.write("# 5th Opt.: optimize H0\n")
+        text_file.write("set restart = %s\n" % args["restart_5"])
+        text_file.write("setlens %s.start\n" % fit_name)
+        fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
+        text_file.write("varyh 0.5 0.9 101 %s\n" % fitH0_name)
+        text_file.write("\n")
+        Rein_name = args["outbase"] + "/Rein_" + str(ii)  # str(system["losID"])
+        text_file.write("calcRein %d %s\n" % (optimized_file_nr, Rein_name))
+        text_file.write("1 1 0.5 2 19\n")
+        text_file.write("1 5 -90 90 37\n")
+        text_file.write("1 7 -90 90 37\n")
+        
+        text_file.write("quit\n")
 
 
 if __name__ == "__main__":
