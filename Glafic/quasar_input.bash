@@ -1,17 +1,10 @@
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH -t 04:00:00
-#SBATCH -J QUinput 
-#SBATCH -o QUinput.out
-#SBATCH -e QUinput.err
-#SBATCH -p cosma
-#SBATCH -A durham
-#SBATCH --exclusive
+echo "Create input files for Gravlens"
+echo "for systems ${1} producing ${2} multi.-images version ${3}"
 
 # Dataset options
-los=with_los
-nimgs=4
-version=c  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
+los=$1
+nimgs=$2
+version=$3  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
 infile=../limg_catalogs_${los}_${nimgs}_${version}.json
 inbase=./Quasars/input/${los}/nimgs_${nimgs}
 templates=./Quasars/input
@@ -24,8 +17,13 @@ dt_error=0.05    #[hours]
 
 # Optimization parameters
 priors=1  #0=no 1=yes
+opt_1=0
+opt_2=0
+opt_3=0
+opt_4=1
+opt_explore=1
 
 module unload python
 module load python/3.6.5
 
-mpirun -np 1 python3 ./quasar_input.py $infile $inbase $outbase $templates $los $pos_error $mu_error $dt_error $priors
+mpirun -np 1 python3 ./quasar_input.py $infile $inbase $outbase $templates $los $pos_error $mu_error $dt_error $priors $opt_1 $opt_2 $opt_3 $opt_4 $opt_explore

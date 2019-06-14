@@ -20,6 +20,12 @@ outdir = os.fsencode(args["outdirstr"])
 resdir = []  # initialize output dictionary
 
 # Sort system_id
+files_explore = []
+file_names = args["outdirstr"]+"fitH0_*_explore.dat"
+for file in glob.glob(file_names):
+    files_explore.append(file)
+files_explore.sort(key=lambda ff: int(ff.split("_")[-2]))
+
 files_optresult = []
 file_names = args["outdirstr"]+"fitH0_*_optresult.dat"
 for file in glob.glob(file_names):
@@ -32,15 +38,20 @@ for file in glob.glob(file_names):
     files_point.append(file)
 files_point.sort(key=lambda ff: int(ff.split("_")[-2]))
 
+files_ein = []
+file_names = args["outdirstr"]+"fitH0_*_ein.dat"
+for file in glob.glob(file_names):
+    files_ein.append(file)
+files_ein.sort(key=lambda ff: int(ff.split("_")[-2]))
+
 num_of_files = len(glob.glob(file_names))
 # Run through files
 for ff in range(num_of_files):
     system_id = ff
 
+    # Point
     with open(files_point[system_id], "r") as f:
         lines = f.readlines()
-        print(files_point[system_id])
-        print(lines)
 
         if len(lines) < int(args["nimgs"])+1:
             print("wrong nr. of images for system %d" % system_id)
@@ -72,7 +83,6 @@ for ff in range(num_of_files):
             image_b = lines[2].split()
             image_c = lines[3].split()
             image_d = lines[4].split()
-            print(image_d)
             x1 = [float(image_a[0]), float(image_b[0]),
                   float(image_c[0]), float(image_d[0])]
             x2 = [float(image_a[1]), float(image_b[1]),
@@ -103,45 +113,51 @@ for ff in range(num_of_files):
             mu_4 = mu[index[3]]
             dt_4 = dt[index[3]]
 
+    # chi^2
+    with open(files_explore[system_id], "r") as f:
+        lines = f.readlines()
+        indx = [ii for ii, ll in enumerate(lines) if "best-fit" in ll][0]
+        chi_square = (lines[indx].split()[-1])
+    
+    # Optimization
     with open(files_optresult[system_id], "r") as f:
         lines = f.readlines()
-        # Run through lines in file bottom-to-top
-        for index in range(len(lines)-1, 0, -1):
-            # End of results
-            if 'optimize' in lines[index]:
-                break 
+        indx = [ii for ii, ll in enumerate(lines) if chi_square in ll][0]
 
-            # chi^2
-            if 'chi^2' in lines[index]:
-                chi = lines[index].split()
-                chi_square = float(chi[2])
+        # Cosmology 
+        if 'hubble' in lines[indx+6].split():
+            cosmol = lines[indx+6].split()
+            hubble = float(cosmol[-1])
+        
+        # Lens
+        if 'lens   sie' in lines[indx+8]:
+            lens= lines[indx+8].split()
+            vel_disp = float(lens[2])
+            xl1 = float(lens[3])
+            xl2 = float(lens[4])
+            ql = float(lens[5])
+            pa = float(lens[6])
+            r_core = float(lens[7])
             
-            # Cosmology 
-            if 'omega' in lines[index].split():
-                cosmol = lines[index].split()
-                hubble = float(cosmol[-1])
-            
-            # Lens
-            if 'lens   sie' in lines[index]:
-                lens= lines[index].split()
-                vel_disp = float(lens[2])
-                xl1 = float(lens[3])
-                xl2 = float(lens[4])
-                ql = float(lens[5])
-                pa = float(lens[6])
-                r_core = float(lens[7])
-            
-            # external perturbation
-            if 'lens   pert' in lines[index]:
-                pert = lines[index].split()
-                shear = float(pert[5])
-                shear_angle = float(pert[6])
-            
-            # Source
-            if 'point  ' in lines[index]:
-                lens= lines[index].split()
-                ys1 = float(lens[2])
-                ys2 = float(lens[3])
+        # external perturbation
+        if 'lens   pert' in lines[indx+9]:
+            pert = lines[indx+9].split()
+            shear = float(pert[5])
+            shear_angle = float(pert[6])
+        
+        # Source
+        if 'point  ' in lines[indx+10]:
+            lens= lines[indx+10].split()
+            ys1 = float(lens[2])
+            ys2 = float(lens[3])
+    
+    # Einstein-Ring
+    with open(files_ein[system_id], "r") as f:
+        lines = f.readlines()
+        if not lines: 
+            print("no Einstein radius for system %d" % system_id)
+            continue
+        Re = float(lines[0].split()[2])
 
     if args["nimgs"] == "2":
         resdir.append({
@@ -156,7 +172,8 @@ for ff in range(num_of_files):
             "r_core" : r_core,
             "ys1" : ys1, 
             "ys2" : ys2,
-            "chi_total" : chi_square,
+            "chi_total" : float(chi_square),
+            "Re" : Re,
             "h" : hubble,
             "x1_1" : x1_1,
             "x2_1" : x2_1,
@@ -180,7 +197,8 @@ for ff in range(num_of_files):
             "r_core" : r_core,
             "ys1" : ys1, 
             "ys2" : ys2,
-            "chi_total" : chi_square,
+            "chi_total" : float(chi_square),
+            "Re" : Re,
             "h" : hubble,
             "x1_1" : x1_1,
             "x2_1" : x2_1,
@@ -199,9 +217,6 @@ for ff in range(num_of_files):
             "mu_4" : mu_4,
             "dt_4" : dt_4,
             })
-    print(system_id)
-    print(resdir[-1])
-    break
 
 
 with open("./quasars_%s_nimgs_%s_%s.json" % (args["los"], args["nimgs"], args["version"]), 'w') as fout:

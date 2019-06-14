@@ -34,7 +34,12 @@ def sl_sys_analysis():
         args["pos_error"] = sys.argv[6]
         args["mu_error"] = sys.argv[7]
         args["dt_error"] = sys.argv[8]
-        args["priors"] = bool(sys.argv[8])
+        args["priors"] = bool(int(sys.argv[9]))
+        args["opt_1"] = int(sys.argv[10])
+        args["opt_2"] = int(sys.argv[11])
+        args["opt_3"] = int(sys.argv[12])
+        args["opt_4"] = int(sys.argv[13])
+        args["opt_explore"] = int(sys.argv[14])
 
         # Remove previous input files
         os.system("rm " + args["inbase"] + "/optimize*")
@@ -62,11 +67,11 @@ def sl_sys_analysis():
     for ii in range(len(systems))[start_sys:end_sys]:
 
         system = systems[ii]
-        system_prior = systems_prior[ii]
+        #system_prior = systems_prior[ii]
 
-        # Source observables file
-        data_file_name = args["inbase"] + "/source_obs_" + str(ii) + ".dat"
-        text_file = open(data_file_name, "w")
+        # Source observables file ###############################################
+        source_obs_file = args["inbase"] + "/source_obs_" + str(ii) + ".dat"
+        text_file = open(source_obs_file, "w")
         text_file.write("1 " + str(system["nimgs"]) + " 2.0 0.001 \n")
         for jj in range(system["nimgs"]):
             text_file.write(
@@ -84,83 +89,95 @@ def sl_sys_analysis():
             )
         text_file.close()
 
-        # Prior file (only for lens possible, not for point-source)
-        data_file_name = args["inbase"] + "/prior_" + str(ii) + ".dat"
-        text_file = open(data_file_name, "w")
-        # sie:velocity disperison [km/sec]
-        text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 1, 300.0, 150.0))
+        # Prior file (only for lens possible, not for point-source) #############
+        prior_file = args["inbase"] + "/prior_" + str(ii) + ".dat"
+        text_file = open(prior_file, "w")
         if args["priors"] is True:
+            # sie:velocity disperison [km/sec]
+            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 1, 100.0, 400.0))
             # sie:ellipticity
-            text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 4, 0.5, 0.4))
+            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 4, 0.1, 0.9))
             # sie:position-angle
-            text_file.write("gauss lens %d %d %.2f %.1f \n" % (1, 5, 175.0, 170.0))
+            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 5, -90.0, 90.0))
             # sie:core-radius
             text_file.write("range lens %d %d %.2f %.1f \n" % (1, 6, 0.0, 1.0))
+            # pert:shear
+            text_file.write("range lens %d %d %.2f %.1f \n" % (2, 4, -0.9, 0.9))
+            # pert:position-angle
+            text_file.write("range lens %d %d %.2f %.1f \n" % (2, 5, -90.0, 90.0))
         # pert: match x-pos to lens
         text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,2,1,2,1.0,0.0))
         # pert: match y-pos to lens
         text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,3,1,3,1.0,0.0))
         # hubble const.
-        text_file.write("range hubble %.2f %.2f \n" % (0.5, 0.9))
+        text_file.write("range hubble %.2f %.2f \n" % (0.2, 1.2))
 
-        # Optimization file
-        template_name = args["templates"] + "/template_optimize.input"
-        new_file_name = args["inbase"] + "/optimize_" + str(ii) + ".input"
-        copyfile(template_name, new_file_name)
-        os.system("sed -i '6s@.*@zl " + str(system_prior["zl"]) + "@' " + new_file_name)
-        os.system(
-            "sed -i '7s@.*@prefix "
-            + args["outbase"]
-            + "/fitH0_"
-            + str(ii)
-            + "@' "
-            + new_file_name
-        )
-        # Define lenses and sources
-        os.system("sed -i '24s@.*@startup 2 0 1" + "@' " + new_file_name)
-        os.system(
-            "sed -i '25s@.*@  lens sie 300.0 0.0 0.0 0.5 1.0 0.1 0.0"
-            + "@' "
-            + new_file_name
-        )
-        os.system(
-            "sed -i '26s@.*@  lens pert 2.0 0.0 0.0 3.958251e-02 5.182124e+01 0.0 0.0"
-            + "@' "
-            + new_file_name
-        )
-        os.system("sed -i '27s@.*@  point 2.0 0.0 0.0" + "@' " + new_file_name)
-        # Define optimization routine
-        os.system("sed -i '32s@.*@  1 1 1 1 1 1 0" + "@' " + new_file_name)
-        os.system("sed -i '33s@.*@  0 0 0 1 1 0 0" + "@' " + new_file_name)
-        os.system("sed -i '34s@.*@  0 1 1" + "@' " + new_file_name)
-        # Define executione commands
-        os.system("sed -i '38s@.*@start_command@' " + new_file_name)
-        os.system(
-            "sed -i '40s@.*@readobs_point "
-            + args["inbase"]
-            + "/source_obs_"
-            + str(ii)
-            + ".dat"
-            + "@' "
-            + new_file_name
-        )
-        os.system(
-            "sed -i '41s@.*@parprior "
-            + args["inbase"]
-            + "/prior_"
-            + str(ii)
-            + ".dat"
-            + "@' "
-            + new_file_name
-        )
-        SIEPOI_name = args["outbase"] + "/SIE_POI_" + str(ii)
-        os.system("sed -i '43s@.*@optimize @' " + new_file_name)
-        os.system("sed -i '44s@.*@resetopt_lens @' " + new_file_name)
-        os.system("sed -i '45s@.*@calcein 2.0 @' " + new_file_name)
-        os.system("sed -i '46s@.*@findimg @' " + new_file_name)
-        
-        # Not Working
-        # subprocess.call(["./lensmodel", new_file_name])
+        # Write optimization file #####################################################
+        optimize_fname = args["inbase"] + "/optimize_" + str(ii) + ".in"
+        prefix_file = args["outbase"] + "/fitH0_" + str(ii)
+        text_file = open(optimize_fname, "w")
+        text_file.write("# Primary parameters\n")
+        text_file.write("omega 0.3089\n")
+        text_file.write("lambda 0.6911\n")
+        text_file.write("weos -1.0\n")
+        text_file.write("hubble 0.6774\n")
+        text_file.write("zl 0.5\n")
+        text_file.write("prefix %s\n" % prefix_file)
+        text_file.write("xmin     -5.0\n")
+        text_file.write("ymin     -5.0\n")
+        text_file.write("xmax      5.0\n")
+        text_file.write("ymax      5.0\n")
+        text_file.write("pix_poi   0.2\n")
+        text_file.write("maxlev    6\n")
+        text_file.write(" \n")
+        text_file.write("# Secondary parameters\n")
+        text_file.write("chi2_splane    1\n")
+        text_file.write("chi2_checknimg 1\n")
+        text_file.write("chi2_usemag    0\n")
+        text_file.write("chi2_restart   -1\n")
+        text_file.write("hvary          1\n")
+        #text_file.write("ran_seed       -46158\n")
+        text_file.write(" \n")
+        text_file.write("# Define lenses and sources\n")
+        text_file.write("startup 2 0 1\n")
+        text_file.write("   lens sie 300.0 0.0 0.0 0.5 1.0 0.1 0.0\n")
+        text_file.write("   lens pert 2.0 0.0 0.0 3.958e-02 5.182e+01 0.0 0.0\n")
+        text_file.write("   point 2.0 0.0 0.0\n")
+        text_file.write("end_startup\n")
+        text_file.write(" \n")
+        text_file.write("# Define optimizations\n")
+        text_file.write("start_setopt\n")
+        text_file.write("   1 1 1 1 1 1 0\n")
+        text_file.write("   0 0 0 1 1 0 0\n")
+        text_file.write("   0 1 1\n")
+        text_file.write("end_setopt\n")
+        text_file.write(" \n")
+        text_file.write("# Start Runs\n")
+        text_file.write("start_command\n")
+        text_file.write("readobs_point %s\n" % source_obs_file)
+        text_file.write("parprior %s\n" % prior_file)
+        if args["opt_1"] > 0:
+            # 1st Optimization: Mass
+            text_file.write("varyone 1 1 100 400 100\n")
+            text_file.write("resetopt_lens\n")
+        if args["opt_2"] > 0:
+            # 2nd Optimization: e/Pa
+            text_file.write("varytwo 1 4 0.0 0.95 50 1 5 -90.0 90.0 50\n")
+            text_file.write("resetopt_lens\n")
+        if args["opt_3"] > 0:
+            # 3rd Optimization: shear PA
+            text_file.write("varyone 2 5 -90.0 90.0 50\n")
+            text_file.write("resetopt_lens\n")
+        if args["opt_4"] > 0:
+            # 4th Optimization: everything
+            text_file.write("optimize\n")
+            text_file.write("resetopt_lens\n")
+        if args["opt_explore"] > 0:
+            text_file.write("opt_explore 1000 1000.0\n")
+            text_file.write("resetopt_lens\n")
+        text_file.write("calcein 2.0\n")
+        text_file.write("findimg\n")
+        text_file.write("quit\n")
 
 
 if __name__ == "__main__":
