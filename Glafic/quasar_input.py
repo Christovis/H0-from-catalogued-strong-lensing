@@ -92,23 +92,25 @@ def sl_sys_analysis():
         # Prior file (only for lens possible, not for point-source) #############
         prior_file = args["inbase"] + "/prior_" + str(ii) + ".dat"
         text_file = open(prior_file, "w")
-        if args["priors"] is True:
+        if args["priors"] > 0:
             # sie:velocity disperison [km/sec]
             text_file.write("range lens %d %d %.2f %.1f \n" % (1, 1, 100.0, 400.0))
             # sie:ellipticity
-            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 4, 0.1, 0.9))
+            text_file.write("range lens %d %d %.3f %.3f \n" % (1, 4, 0.01, 0.95))
             # sie:position-angle
             text_file.write("range lens %d %d %.2f %.1f \n" % (1, 5, -90.0, 90.0))
             # sie:core-radius
-            text_file.write("range lens %d %d %.2f %.1f \n" % (1, 6, 0.0, 1.0))
-            # pert:shear
-            text_file.write("range lens %d %d %.2f %.1f \n" % (2, 4, -0.9, 0.9))
-            # pert:position-angle
-            text_file.write("range lens %d %d %.2f %.1f \n" % (2, 5, -90.0, 90.0))
-        # pert: match x-pos to lens
-        text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,2,1,2,1.0,0.0))
-        # pert: match y-pos to lens
-        text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,3,1,3,1.0,0.0))
+            text_file.write("range lens %d %d %.3f %.3f \n" % (1, 6, 0.001, 2.0))
+            if args["los"] == "with_los":
+                # pert:shear
+                text_file.write("range lens %d %d %.3f %.3f \n" % (2, 4, 0.001, 0.9))
+                # pert:position-angle
+                text_file.write("range lens %d %d %.2f %.1f \n" % (2, 5, -90.0, 90.0))
+        if args["los"] == "with_los":
+            # pert: match x-pos to lens
+            text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,2,1,2,1.0,0.0))
+            # pert: match y-pos to lens
+            text_file.write("match lens %d %d %d %d %.1f %.1f \n" % (2,3,1,3,1.0,0.0))
         # hubble const.
         text_file.write("range hubble %.2f %.2f \n" % (0.2, 1.2))
 
@@ -135,20 +137,25 @@ def sl_sys_analysis():
         text_file.write("chi2_checknimg 1\n")
         text_file.write("chi2_usemag    0\n")
         text_file.write("chi2_restart   -1\n")
-        text_file.write("hvary          1\n")
+        #text_file.write("hvary          1\n")
         #text_file.write("ran_seed       -46158\n")
         text_file.write(" \n")
         text_file.write("# Define lenses and sources\n")
-        text_file.write("startup 2 0 1\n")
+        if args["los"] == "with_los":
+            text_file.write("startup 2 0 1\n")
+        else: 
+            text_file.write("startup 1 0 1\n")
         text_file.write("   lens sie 300.0 0.0 0.0 0.5 1.0 0.1 0.0\n")
-        text_file.write("   lens pert 2.0 0.0 0.0 3.958e-02 5.182e+01 0.0 0.0\n")
+        if args["los"] == "with_los":
+            text_file.write("   lens pert 2.0 0.0 0.0 3.958e-02 5.182e+01 0.0 0.0\n")
         text_file.write("   point 2.0 0.0 0.0\n")
         text_file.write("end_startup\n")
         text_file.write(" \n")
         text_file.write("# Define optimizations\n")
         text_file.write("start_setopt\n")
         text_file.write("   1 1 1 1 1 1 0\n")
-        text_file.write("   0 0 0 1 1 0 0\n")
+        if args["los"] == "with_los":
+            text_file.write("   0 0 0 1 1 0 0\n")
         text_file.write("   0 1 1\n")
         text_file.write("end_setopt\n")
         text_file.write(" \n")
@@ -159,22 +166,18 @@ def sl_sys_analysis():
         if args["opt_1"] > 0:
             # 1st Optimization: Mass
             text_file.write("varyone 1 1 100 400 100\n")
-            text_file.write("resetopt_lens\n")
         if args["opt_2"] > 0:
             # 2nd Optimization: e/Pa
             text_file.write("varytwo 1 4 0.0 0.95 50 1 5 -90.0 90.0 50\n")
-            text_file.write("resetopt_lens\n")
-        if args["opt_3"] > 0:
+        if (args["opt_3"] > 0) and (system["nimgs"] > 2):
             # 3rd Optimization: shear PA
             text_file.write("varyone 2 5 -90.0 90.0 50\n")
-            text_file.write("resetopt_lens\n")
         if args["opt_4"] > 0:
-            # 4th Optimization: everything
+            # 4th Optimization: lens
             text_file.write("optimize\n")
-            text_file.write("resetopt_lens\n")
         if args["opt_explore"] > 0:
             text_file.write("opt_explore 1000 1000.0\n")
-            text_file.write("resetopt_lens\n")
+        text_file.write("varycosmo hubble 0.2 1.2 100\n")
         text_file.write("calcein 2.0\n")
         text_file.write("findimg\n")
         text_file.write("quit\n")
