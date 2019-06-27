@@ -11,9 +11,9 @@ from lenstronomy.Cosmo.lens_cosmo import LensCosmo
 import time
 from glob import glob
 import json
+import h5py
 from mpi4py import MPI
 from mpi_errchk import mpi_errchk
-import h5py
 
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -30,10 +30,11 @@ def sl_sys_analysis():
         args["infile"] = sys.argv[1]
         args["nimgs"] = sys.argv[2]
         args["los"] = sys.argv[3]
-        args["dt_sigma"] = float(sys.argv[4])
-        args["image_amps_sigma"] = float(sys.argv[5])
-        args["flux_ratio_errors"] = float(sys.argv[6])
-        args["astrometry_sigma"] = float(sys.argv[7])
+        args["version"] = sys.argv[4]
+        args["dt_sigma"] = float(sys.argv[5])
+        args["image_amps_sigma"] = float(sys.argv[6])
+        args["flux_ratio_errors"] = float(sys.argv[7])
+        args["astrometry_sigma"] = float(sys.argv[8])
 
     args = comm.bcast(args)
     # Organize devision of strong lensing systems
@@ -52,8 +53,14 @@ def sl_sys_analysis():
     if comm_rank == 0:
         print("Each process will have %d systems" % sys_nr_per_proc)
         print("That should take app. %f min." % (sys_nr_per_proc * 20))
-
-    results = {"D_dt": []}
+    
+    results = {
+        "gamma": [],
+        "phi_ext": [],
+        "gamma_ext": [],
+        "theta_E": [],
+        "D_dt": [],
+    }
     for ii in range(len(systems))[(start_sys + 2) : end_sys]:
         system = systems[ii]
         system_prior = systems_prior[ii]
@@ -105,6 +112,7 @@ def sl_sys_analysis():
                 "e2": 0.0,
             }
         )
+        # error
         kwargs_lens_sigma.append(
             {
                 "theta_E": 0.2,
@@ -115,6 +123,7 @@ def sl_sys_analysis():
                 "center_y": 0.1,
             }
         )
+        # lower limit
         kwargs_lower_lens.append(
             {
                 "theta_E": 0.01,
@@ -125,6 +134,7 @@ def sl_sys_analysis():
                 "center_y": -10,
             }
         )
+        # upper limit
         kwargs_upper_lens.append(
             {
                 "theta_E": 10,
@@ -297,7 +307,7 @@ def sl_sys_analysis():
             kwargs_lens_init=lens_result,
             **kwargs_constraints,
         )
-        # the number of non-linear parameters and their names #
+        # the number of non-linear parameters and their names
         num_param, param_list = param.num_param()
 
         lensAnalysis = LensAnalysis(kwargs_model)
@@ -309,38 +319,43 @@ def sl_sys_analysis():
             r"$\gamma_{ext}$",
             r"$D_{\Delta t}$",
         ]
+
+        D_dt = np.zeros(len(samples_mcmc))
+        theta_E = np.zeros(len(samples_mcmc))
         for i in range(len(samples_mcmc)):
             # transform the parameter position of the MCMC chain in a
-            # lenstronomy convention with keyword arguments #
+            # lenstronomy convention with keyword arguments
             kwargs_lens_out, kwargs_light_source_out, kwargs_light_lens_out, kwargs_ps_out, kwargs_cosmo = param.args2kwargs(
                 samples_mcmc[i]
             )
-            D_dt = kwargs_cosmo["D_dt"]
-            gamma = kwargs_lens_out[0]["gamma"]
+            D_dt[i] = kwargs_cosmo["D_dt"]
+            gamma[i] = kwargs_lens_out[0]["gamma"]
+            theta_E[i] = kwargs_lens_out[0]['theta_E']
+            e1[i] = kwargs_lens_out[0]['e1']
+            e2[i] = kwargs_lens_out[0]['e2']
             phi_ext, gamma_ext = lensAnalysis._lensModelExtensions.external_shear(
                 kwargs_lens_out
             )
-            mcmc_new_list.append([gamma, phi_ext, gamma_ext, D_dt])
 
         # plot = corner.corner(mcmc_new_list, labels=labels_new, show_titles=True)
         # and here the predicted angular diameter distance from a
         # default cosmology (attention for experimenter bias!)
         lensCosmo = LensCosmo(z_lens=z_lens, z_source=z_source)
-        results["D_dt"].append(D_dt)
+        gamma = np.mean(gamma)
+        phi_ext = np.mean(phi_ext)
+        gamma_ext = np.mean(gamma_ext)
+        theta_E = np.mean(theta_E)
+        D_dt = np.mean(D_dt)
+        results["gamma"].append(gamma)
+        results["phi_ext"].append(phi_ext)
+        results["gamma_ext"].append(gamma_ext)
+        results["theta_E"].append(theta_E)
+        results["D_dt"].append(lensCosmo.D_dt)
 
-    hf = h5py.File(
-        "H0_"
-        + args["los"]
-        + "_nimgs"
-        + str(args["nimgs"])
-        + "_cpu"
-        + str(comm_rank)
-        + ".hdf5",
-        "w",
-    )
-    hf.create_dataset("D_dt", data=results["D_dt"])
-    hf.close()
+    with open("./quasars_%s_nimgs_%s_%s.json" % (args["los"], args["nimgs"], args["version"]),'w') as fout:
+        json.dump(results, fout)
 
 
 if __name__ == "__main__":
     sl_sys_analysis()
+
