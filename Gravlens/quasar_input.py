@@ -3,6 +3,7 @@ import os, sys
 from shutil import copyfile
 from glob import glob
 import numpy as np
+from random import randint
 import json
 import subprocess
 from mpi4py import MPI
@@ -35,9 +36,11 @@ def sl_sys_analysis():
         args["restart_3"] = sys.argv[7]
         args["restart_4"] = sys.argv[8]
         args["restart_5"] = sys.argv[9]
-        args["pos_error"] = sys.argv[10]
-        args["mu_error"] = sys.argv[11]
-        args["dt_error"] = sys.argv[12]
+        args["opt_explore"] = sys.argv[10]
+        args["pos_error"] = sys.argv[11]
+        args["mu_error"] = sys.argv[12]
+        args["dt_error"] = sys.argv[13]
+        args["ext_kappa"] = sys.argv[14]
 
         # Remove previous input files
         print('args["inbase"]', args["inbase"])
@@ -57,6 +60,9 @@ def sl_sys_analysis():
     # with open("../lens_catalogs_sie_only.json", "r") as myfile:
     #    limg_data = myfile.read()
     # systems_prior = json.loads(limg_data)
+
+    if len(args["ext_kappa"]) > 4:
+        ext_kappa = np.fromfile(args["ext_kappa"], dtype=np.float32) 
 
     if comm_rank == 0:
         print("Each process will have %d systems" % sys_nr_per_proc)
@@ -92,7 +98,7 @@ def sl_sys_analysis():
             )
         text_file.close()
 
-        # Write optimization-file ###############################################
+        # Write optimization file ###############################################
         optimize_fname = args["inbase"] + "/optimize_" + str(ii) + ".in"
         text_file = open(optimize_fname, "w")
         text_file.write("# Cosmological parameters\n")
@@ -111,13 +117,40 @@ def sl_sys_analysis():
         text_file.write("data %s\n" % data_fname)
         text_file.write("\n")
         optimized_file_nr = 1
+        if int(args["opt_explore"]) > 0:
+            # Explore optimization: vary all parameters within their priors
+            text_file.write("setlens 1 1\n")
+            text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
+            if len(args["ext_kappa"]) > 4:
+                text_file.write("convrg %.4f \n" % ext_kappa[ii])
+            else:
+                text_file.write("convrg 0.0 \n")
+            text_file.write("1 0 0 1 1 1 1 0 0 1\n")
+            text_file.write("seed -%d\n" % randint(0, 100))
+            fit_name = args["outbase"] + "/fit%s_%d" % ("explore", ii)
+            text_file.write("randomize 10 %s\n" % fit_name)
+            text_file.write("%f %f # b/mass-range\n" % (0.1, 7.0))
+            text_file.write("%f %f # ellip range\n" % (0.0, 0.99))
+            text_file.write("%f %f # PA range\n" % (-90.0, 90.0))
+            text_file.write("%f %f # shear range\n" % (0.0, 1.0))
+            text_file.write("%f %f # shear PA range\n" % (-90.0, 90.0))
+            text_file.write("\n")
         if int(args["restart_1"]) > 0:
             # First Optimization: at fixed shear, reoptimize galaxy mass and e/PA
             text_file.write("# 1st Opt.: add fixed shear, reoptimize galaxy mass and e/PA\n")
             text_file.write("set restart = %s\n" % args["restart_1"])
-            text_file.write("setlens 1 1\n")
-            text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
+            if 'fit_name' in locals():
+                text_file.write("setlens %s.start\n" % fit_name)
+                text_file.write("changevary 1\n")
+            else:
+                text_file.write("setlens 1 1\n")
+                text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
+                if len(args["ext_kappa"]) > 4:
+                    text_file.write("convrg %.4f \n" % ext_kappa[ii])
+                else:
+                    text_file.write("convrg 0.0 \n")
             text_file.write("1 0 0 1 1 0 0 0 0 0\n")
+            text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("optimize %s\n" % fit_name)
             text_file.write("\n")
@@ -129,6 +162,7 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 1 1 1 1 0 0 0\n")
+            text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
             text_file.write("\n")
@@ -140,6 +174,7 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 0 0 0 0 0 0 1\n")
+            text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
             text_file.write("\n")
@@ -151,6 +186,7 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 1 1 1 1 1 1 0 0 0\n")
+            text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("optimize %s\n" % fit_name)
             text_file.write("\n")
@@ -160,7 +196,7 @@ def sl_sys_analysis():
         text_file.write("set restart = %s\n" % args["restart_5"])
         text_file.write("setlens %s.start\n" % fit_name)
         fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
-        text_file.write("varyh 0.5 0.9 101 %s\n" % fitH0_name)
+        text_file.write("varyh 0.2 1.2 101 %s\n" % fitH0_name)
         text_file.write("\n")
         Rein_name = args["outbase"] + "/Rein_" + str(ii)  # str(system["losID"])
         text_file.write("calcRein %d %s\n" % (optimized_file_nr, Rein_name))
