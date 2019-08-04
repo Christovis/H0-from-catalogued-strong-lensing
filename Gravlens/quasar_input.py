@@ -41,6 +41,7 @@ def sl_sys_analysis():
         args["mu_error"] = sys.argv[12]
         args["dt_error"] = sys.argv[13]
         args["ext_kappa"] = sys.argv[14]
+        args["use_ext_kappa"] = sys.argv[15]
 
         # Remove previous input files
         print('args["inbase"]', args["inbase"])
@@ -61,8 +62,9 @@ def sl_sys_analysis():
     #    limg_data = myfile.read()
     # systems_prior = json.loads(limg_data)
 
-    if len(args["ext_kappa"]) > 4:
-        ext_kappa = np.fromfile(args["ext_kappa"], dtype=np.float32) 
+    if args["use_ext_kappa"] == "yes":
+        if len(args["ext_kappa"]) > 4:
+            ext_kappa = np.fromfile(args["ext_kappa"], dtype=np.float32) 
 
     if comm_rank == 0:
         print("Each process will have %d systems" % sys_nr_per_proc)
@@ -121,10 +123,11 @@ def sl_sys_analysis():
             # Explore optimization: vary all parameters within their priors
             text_file.write("setlens 1 1\n")
             text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
-            if len(args["ext_kappa"]) > 4:
-                text_file.write("convrg %.4f \n" % ext_kappa[ii])
-            else:
-                text_file.write("convrg 0.0 \n")
+            if args["use_ext_kappa"] == "yes":
+                if len(args["ext_kappa"]) > 4:
+                    text_file.write("convrg %.4f \n" % ext_kappa[ii])
+                else:
+                    text_file.write("convrg 0.0 \n")
             text_file.write("1 0 0 1 1 1 1 0 0 1\n")
             text_file.write("seed -%d\n" % randint(0, 100))
             fit_name = args["outbase"] + "/fit%s_%d" % ("explore", ii)
@@ -145,12 +148,14 @@ def sl_sys_analysis():
             else:
                 text_file.write("setlens 1 1\n")
                 text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
-                if len(args["ext_kappa"]) > 4:
-                    text_file.write("convrg %.4f \n" % ext_kappa[ii])
-                else:
-                    text_file.write("convrg 0.0 \n")
+                if args["use_ext_kappa"] == "yes":
+                    if len(args["ext_kappa"]) > 4:
+                        text_file.write("convrg %.4f \n" % ext_kappa[ii])
+                    else:
+                        text_file.write("convrg 0.0 \n")
             text_file.write("1 0 0 1 1 0 0 0 0 0\n")
-            text_file.write("0\n")
+            if args["use_ext_kappa"] == "yes":
+                text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("optimize %s\n" % fit_name)
             text_file.write("\n")
@@ -162,7 +167,8 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 1 1 1 1 0 0 0\n")
-            text_file.write("0\n")
+            if args["use_ext_kappa"] == "yes":
+                text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
             text_file.write("\n")
@@ -174,7 +180,8 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 0 0 0 0 0 0 1\n")
-            text_file.write("0\n")
+            if args["use_ext_kappa"] == "yes":
+                text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
             text_file.write("\n")
@@ -186,7 +193,8 @@ def sl_sys_analysis():
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 1 1 1 1 1 1 0 0 0\n")
-            text_file.write("0\n")
+            if args["use_ext_kappa"] == "yes":
+                text_file.write("0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
             text_file.write("optimize %s\n" % fit_name)
             text_file.write("\n")
