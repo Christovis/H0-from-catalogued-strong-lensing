@@ -114,7 +114,7 @@ def sl_sys_analysis():
         text_file.write("# Lensmodel inputs\n")
         text_file.write("set checkparity = 0\n")
         text_file.write("set omitcore 1.0e-6\n")
-        text_file.write("set upenalty 1.0e-4\n")
+        #text_file.write("set upenalty 1.0e-4\n")
         text_file.write("set gridflag = 0\n")
         text_file.write("set chimode = 0  # source plane\n")
         text_file.write("data %s\n" % data_fname)
@@ -124,11 +124,11 @@ def sl_sys_analysis():
             # Explore optimization: vary all parameters within their priors
             if args["use_ext_kappa"] == "yes":
                 text_file.write("setlens 1 2\n")
-                text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
+                text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.1 10.0 0.0 0.0 1.0\n")
                 if len(args["ext_kappa"]) > 4:
                     text_file.write("convrg %.4f 0 0 0 0 0 0 0 0 0\n" % ext_kappa[ii])
                 else:
-                    text_file.write("convrg 0.0 0 0 0 0 0 0 0 0 0\n")
+                    text_file.write("convrg 1.0e-9 0 0 0 0 0 0 0 0 0\n")
             else:
                 text_file.write("setlens 1 1\n")
                 text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
@@ -157,7 +157,7 @@ def sl_sys_analysis():
                     if len(args["ext_kappa"]) > 4:
                         text_file.write("convrg %.4f 0 0 0 0 0 0 0 0 0\n" % ext_kappa[ii])
                     else:
-                        text_file.write("convrg 0.0 0 0 0 0 0 0 0 0 0\n")
+                        text_file.write("convrg 1.0-9 0 0 0 0 0 0 0 0 0\n")
                 else:
                     text_file.write("setlens 1 1\n")
                     text_file.write("alpha 1.0 0.0 0.0 0.1 10.0 0.0 0.0 0.0 0.0 1.0\n")
