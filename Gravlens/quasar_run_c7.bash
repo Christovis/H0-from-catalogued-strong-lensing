@@ -1,4 +1,4 @@
-echo "Run Glafic over ${3} systems"
+echo "Run Gravlens over ${3} systems"
 # Change to the directory where the job was submitted
 module purge
 module load gnu_comp/7.3.0 openmpi/3.0.1
@@ -9,10 +9,11 @@ nimgs=$2
 inbase=./Quasars/input/${los}/nimgs_${nimgs} # Location of inputs for gravlens
 outbase=./Quasars/results/${los}/nimgs_${nimgs} # Location of results for gravlens
 
-if test -f "$outbase/fitH_0.best"; then
-    "removing old results"
+if [ -z "$(ls -A ${outbase})" ]; then
+    echo " "
+else
+    echo "removing old results in:  ${outbase}/"
     rm $outbase/*
-    #rm $outbase/Rein_*
 fi
 
 # nimgs=2 & a -> 999 

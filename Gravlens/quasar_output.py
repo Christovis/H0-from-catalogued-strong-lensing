@@ -5,7 +5,7 @@
 # — 5. modelled axis-ration and position angles of the lenses (ql and pa) 
 
 from __future__ import division
-import os, sys
+import os, sys, glob
 import numpy as np
 import pandas as pd
 import json
@@ -14,18 +14,22 @@ args = {}
 args["outdirstr"] = sys.argv[1]
 args["los"] = sys.argv[2]
 args["nimgs"] = sys.argv[3]
-args["version"] = sys.argv[4]
+args["extkappa"] = sys.argv[4]
+args["infile"] = sys.argv[5]
+
 outdir = os.fsencode(args["outdirstr"])
 
 resdir = []  # initialize output dictionary
 
 # Run through files
-for file in os.listdir(outdir):
-    filename = os.fsdecode(file)
-
+fitH0_files = profile_files = glob.glob(args["outdirstr"]+"fit6_*.best")
+#for file in os.listdir(outdir):
+#    filename = os.fsdecode(file)
+for filename in fitH0_files:
     if filename.endswith(".best"):
+        print(filename)
         system_id = filename.split('_')[-1].split('.')[0]
-        with open(args["outdirstr"]+filename, "r") as f:
+        with open(filename, "r") as f:
             lines = f.readlines()
     
             # Run through lines in file
@@ -113,12 +117,14 @@ for file in os.listdir(outdir):
                         x2_4 = x1[index[3]]
                         mu_4 = mu[index[3]]
                         dt_4 = dt[index[3]]
-
-        filename = "Rein_" + system_id
-        with open(args["outdirstr"]+filename, "r") as f:
-            lines = f.readlines()
-            Re = lines[0].split()[0]
-        
+        try:
+            filename = "Rein_" + system_id
+            with open(args["outdirstr"]+filename, "r") as f:
+                lines = f.readlines()
+                Re = lines[0].split()[0]
+        except:
+            print(filename + " doesnt exist")
+            break
         """
         filename = "magnification_" + system_id + ".dat"
         with open(args["outdirstr"]+filename, "r") as f:
@@ -223,6 +229,7 @@ for file in os.listdir(outdir):
             })
 
 
-with open("./quasars_%s_nimgs_%s_%s.json" % (args["los"], args["nimgs"], args["version"]), 'w') as fout:
+with open("./results_"+args["infile"], 'w') as fout:
+#with open("./quasars_%s_nimgs_%s_%s_%sextkappa.json" % (args["los"], args["nimgs"], args["version"], args["extkappa"]), 'w') as fout:
     json.dump(resdir, fout)
 
