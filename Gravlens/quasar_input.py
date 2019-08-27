@@ -149,7 +149,7 @@ def sl_sys_analysis():
             text_file.write("%f %f # shear PA range\n" % (-90.0, 90.0))
             text_file.write("\n")
         if int(args["restart_1"]) > 0:
-            # First Optimization: at fixed shear, reoptimize galaxy mass and e/PA
+            # 1st Optimization: at fixed shear, optimize galaxy mass and e/PA
             text_file.write("# 1st Opt.: add fixed shear, reoptimize galaxy mass and e/PA\n")
             text_file.write("set restart = %s\n" % args["restart_1"])
             #if 'fit_name' in locals():
@@ -161,9 +161,9 @@ def sl_sys_analysis():
                     text_file.write("setlens 1 2\n")
                     
                     if args["los"] == "with_los":
-                        text_file.write("alpha 1 0 0 0.1 10.0 0.1 10 0 0 1\n")
+                        text_file.write("alpha 1 0 0 0.1 10. 0.1 10. 0 0 1\n")
                     elif args["los"] == "no_los":
-                        text_file.write("alpha 1 0 0 0.1 10.0 0.1 10 0 0 1\n")
+                        text_file.write("alpha 1 0 0 0.1 10. 0.1 10. 0 0 1\n")
                     
                     if len(args["ext_kappa"]) > 4:
                         text_file.write("convrg %.4f 0 0 0 0 0 0 0 0 0\n" % ext_kappa[ii])
@@ -173,9 +173,9 @@ def sl_sys_analysis():
                     text_file.write("setlens 1 1\n")
                     
                     if args["los"] == "with_los":
-                        text_file.write("alpha 1 0 0 0.1 10.0 0.1 10 0 0 1\n")
+                        text_file.write("alpha 1 0 0 0.1 10. 0.1 10. 0 0 1\n")
                     elif args["los"] == "no_los":
-                        text_file.write("alpha 1 0 0 0.1 10.0 0.1 10 0 0 1\n")
+                        text_file.write("alpha 1 0 0 0.1 10. 0.1 10. 0 0 1\n")
 
             text_file.write("1 0 0 1 1 0 0 0 0 0\n")
             if args["use_ext_kappa"] == "yes":
@@ -185,61 +185,65 @@ def sl_sys_analysis():
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_2"]) > 0:
-            # Second.1 Optimization: optimize position angle with shear angle
-            text_file.write("# 2.1 Opt.: optimize position angle with shear angle\n")
+            # 2nd Optimization: optimize position angle with shear angle
+            text_file.write("# 2nd Opt.: optimize position angle with shear angle\n")
             text_file.write("set restart = %s\n" % args["restart_2"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
-            text_file.write("1 1 1 0 0 0 0 0 0 0\n")
+            text_file.write("1 0 0 0 1 0 1 0 0 0\n")
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("varytwo 1 5 -90.0 90.0 19 1 7 -90.0 90.0 19 %s\n" % fit_name)
+            text_file.write("optimize %s\n" % fit_name)
+            #text_file.write("varytwo 1 5 -90.0 90.0 19 1 7 -90.0 90.0 19 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_3"]) > 0:
-            # Second.2 Optimization: optimize ellipticity with shear 
-            text_file.write("# 2.2 Opt.: \n")
-            text_file.write("set restart = %s\n" % args["restart_2"])
+            # 3rd Optimization: optimize ellipticity with shear 
+            text_file.write("# 3rd Opt. ellipticity with shear: \n")
+            text_file.write("set restart = %s\n" % args["restart_3"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
-            text_file.write("1 1 1 0 1 0 1 0 0 0\n")
+            text_file.write("1 0 0 1 0 1 0 0 0 0\n")
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("varytwo 1 4 0.0 0.5 11 1 6 0.0 0.2 11 %s\n" % fit_name)
+            text_file.write("optimize %s\n" % fit_name)
+            #text_file.write("varytwo 1 4 0.0 0.5 11 1 6 0.0 0.2 11 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_4"]) > 0:
-            # Second.3 Optimization: optimize shear along with galaxy mass and e/PA
-            text_file.write("# 2.3 Opt.: optimize shear along with galaxy mass and e/PA\n")
-            text_file.write("set restart = %s\n" % args["restart_2"])
+            # 4th Optimization: optimize shear along with galaxy mass and e/PA
+            text_file.write("# 4th Opt.: optimize shear along with galaxy mass and e/PA\n")
+            text_file.write("set restart = %s\n" % args["restart_4"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 1 1 1 1 0 0 0\n")
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
+            text_file.write("optimize %s\n" % fit_name)
+            #text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_5"]) > 0:
-            # Third Optimization: optimize density slope
-            text_file.write("# 3rd Opt.: optimize density slope\n")
-            text_file.write("set restart = %s\n" % args["restart_3"])
+            # 5th Optimization: optimize density slope
+            text_file.write("# 5th Opt.: optimize density slope\n")
+            text_file.write("set restart = %s\n" % args["restart_5"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 0 0 0 0 0 0 0 0 1\n")
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
+            text_file.write("optimize %s\n" % fit_name)
+            #text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_6"]) > 0:
-            # Fourth Optimization: optimize everything
-            text_file.write("# 4.1 Opt.: optimize everything\n")
-            text_file.write("set restart = %s\n" % args["restart_4"])
+            # 6th Optimization: optimize everything
+            text_file.write("# 6th Opt.: optimize everything\n")
+            text_file.write("set restart = %s\n" % args["restart_6"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
             text_file.write("1 1 1 1 1 1 1 0 0 0\n")
@@ -250,25 +254,25 @@ def sl_sys_analysis():
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_7"]) > 0:
-            # Fourth Optimization: optimize everything
-            text_file.write("# 4.2 Opt.: optimize everything\n")
-            text_file.write("set restart = %s\n" % args["restart_4"])
+            # 7th Analyze: Ellipticity and Shear degeneracy
+            text_file.write("# 7th Opt.: optimize everything\n")
+            text_file.write("set restart = %s\n" % args["restart_7"])
             text_file.write("setlens %s.start\n" % fit_name)
             text_file.write("changevary 1\n")
-            text_file.write("1 1 1 1 1 1 1 0 0 0\n")
+            text_file.write("1 0 0 0 1 0 1 0 0 0\n")
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("varytwo 1 4 0.0 0.5 26 1 6 0.0 0.2 21 %s\n" % fit_name)
+            text_file.write("varytwo 1 4 0.0 0.99 50 1 6 0.0 0.99 50 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
-        ## Fourth Optimization: H0
-        #text_file.write("# 5th Opt.: optimize H0\n")
-        #text_file.write("set restart = %s\n" % args["restart_8"])
-        #text_file.write("setlens %s.start\n" % fit_name)
-        #fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
-        #text_file.write("varyh 0.2 1.2 101 %s\n" % fitH0_name)
-        #text_file.write("\n")
+        # Fourth Optimization: H0
+        text_file.write("# 5th Opt.: optimize H0\n")
+        text_file.write("set restart = %s\n" % args["restart_8"])
+        text_file.write("setlens %s.start\n" % fit_name)
+        fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
+        text_file.write("varyh 0.2 1.2 101 %s\n" % fitH0_name)
+        text_file.write("\n")
         Rein_name = args["outbase"] + "/Rein_" + str(ii)  # str(system["losID"])
         text_file.write("calcRein %d %s\n" % (optimized_file_nr, Rein_name))
         text_file.write("1 1 0.5 2 19\n")

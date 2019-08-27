@@ -22,4 +22,6 @@ fi
 mpirun -np $4 ./parallel_tasks 0 $3 "./lensmodel ${inbase}/optimize_%d.in" &&
 rm $outbase/fit1_* &&
 rm $outbase/fit2_* &&
-rm $outbase/fit3_*
+rm $outbase/fit3_* &&
+rm $outbase/fit4_* &&
+rm $outbase/fit5_*
