@@ -22,7 +22,7 @@ outdir = os.fsencode(args["outdirstr"])
 resdir = []  # initialize output dictionary
 
 # Run through files
-files = profile_files = glob.glob(args["outdirstr"] + "fit6_*.best")
+files = profile_files = glob.glob(args["outdirstr"] + "fit5_*.dat")
 
 for filename in files:
     system_id = filename.split("_")[-1].split(".")[0]
