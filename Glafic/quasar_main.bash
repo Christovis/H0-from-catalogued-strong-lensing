@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --ntasks=20    # nr. of tasks
 #SBATCH -t 1-00:00:00  # Runtime in D-HH:MM:SS
-#SBATCH -J QU4nLOS 
+#SBATCH -J QU4nLOS
 #SBATCH -o ./logs/QU4nLOS.out
 #SBATCH -e ./logs/QU4nLOS.err
 #SBATCH -p cosma7
@@ -13,12 +13,12 @@ los=no_los
 nimgs=4
 version=b  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
 
-# Optimization parameters                                                        
-priors=1  #0=no 1=yes                                                            
-opt_1=0                                                                          
-opt_2=0                                                                          
-opt_3=0                                                                          
-opt_4=1                                                                          
+# Optimization parameters
+priors=1  #0=no 1=yes
+opt_1=0
+opt_2=0
+opt_3=0
+opt_4=1
 opt_explore=0
 
 # Create .input #################################################################
