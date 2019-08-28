@@ -46,7 +46,7 @@ for filename in files:
         names=['e', 'shear', 'chi2', 'pos', 'flux', 'tdel', 'gal', 'plim', 'crv', 'ring'],
         usecols=['e', 'shear', 'chi2'],
     )
-    grid_cells = len(df_deg.index.values)
+    grid_cells = df_deg.index.values
     value_map = _make_map(
         grid_cells,
         df_deg["chi2"].values,

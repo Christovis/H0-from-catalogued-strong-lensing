@@ -34,9 +34,10 @@ ext_kappa_file=yes  #[yes, no] use external kappa if known
 # nimgs=2 & a,b -> 1019
 # nimgs=4 & a -> 359
 # nimgs=4 & b -> 471
-./quasar_run_c7.bash $los $nimgs 300 64 &&
+#./quasar_run_c7.bash $los $nimgs 300 64 &&
 
-# Create .json ##################################################################
-#./quasar_output.bash $los $nimgs $ext_kappa_file $infile
+# Output results in .json #######################################################
+check=yes  # analyize optimisation resuts
+./quasar_output.bash $los $nimgs $ext_kappa_file $infile $check
 
 exit

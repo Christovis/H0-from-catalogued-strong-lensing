@@ -22,18 +22,21 @@ outdir = os.fsencode(args["outdirstr"])
 resdir = []  # initialize output dictionary
 
 # Run through files
-files = profile_files = glob.glob(args["outdirstr"] + "fit5_*.dat")
+files = glob.glob(args["outdirstr"] + "fit5_*.dat")
+files = [ff for ff in files if not '-' in ff]
+print("There are %d files in %s" % (len(files), args["outdirstr"]))
 
 for filename in files:
     system_id = filename.split("_")[-1].split(".")[0]
 
-    filename_Rein = glob.glob(args["outdirstr"] + "Rein_" + system_id)
-    if filename_Rein:
+    filename_Rein = args["outdirstr"] + "Rein_" + system_id
+    if glob.glob(filename_Rein):
+        print("Rein_ file exists for %s" % system_id)
         with open(filename_Rein, "r") as f:
             lines = f.readlines()
             Re = lines[0].split()[0]
     else:
-        print("No Rein_ file exists for %s" % system_id)
+        #print("No Rein_ file exists for %s" % system_id)
         continue
 
     with open(filename, "r") as f:
