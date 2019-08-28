@@ -8,7 +8,7 @@ from __future__ import division
 import os, sys, glob
 import numpy as np
 import pandas as pd
-import xarrat as xr
+import xarray as xr
 import json
 
 
@@ -47,62 +47,65 @@ for indx, filename in enumerate(files):
         df_deg = pd.read_csv(
             filename,
             sep=" ",
-            skiprows=1,
+            skiprows=3,
             names=[
                 "e",
                 "shear",
                 "chi2",
-                "pos",
-                "flux",
-                "tdel",
-                "gal",
-                "plim",
-                "crv",
-                "ring",
             ],
             usecols=["e", "shear", "chi2"],
         )
-        value_maps = np.zeros((df_deg["e"].values, df_deg["e"].values, len(files)))
-        value_maps[:, :, indx] = make_map(
-            df_deg.index.values,
-            df_deg["chi2"].values,
-            len(df_deg.index.values),
-            len(df_deg.index.values),
-        )
-        init = 0
+        cell_nr = len(df_deg.index.values)
+        if (cell_nr == 50*50) and \
+           (len(np.unique(df_deg["e"].values)) == 50) and \
+           (len(np.unique(df_deg["shear"].values)) == 50):
+            print(filename)
+            grid_cells_x = int(np.sqrt(len(df_deg.index.values)))
+            grid_cells_y = int(np.sqrt(len(df_deg.index.values)))
+            ellipticity_coord = np.unique(df_deg["e"].values)
+            shear_coord = np.unique(df_deg["shear"].values)
+            value_maps = np.zeros((grid_cells_x, grid_cells_y, len(files)))
+            value_maps[:, :, indx] = make_map(
+                df_deg.index.values,
+                df_deg["chi2"].values,
+                grid_cells_x,
+                grid_cells_y,
+            )
+            init = 0
+        else:
+            continue
     else:
         df_deg = pd.read_csv(
             filename,
             sep=" ",
-            skiprows=1,
+            skiprows=3,
             names=[
                 "e",
                 "shear",
                 "chi2",
-                "pos",
-                "flux",
-                "tdel",
-                "gal",
-                "plim",
-                "crv",
-                "ring",
             ],
             usecols=["e", "shear", "chi2"],
         )
-        value_maps[:, :, indx] = make_map(
-            df_deg.index.values,
-            df_deg["chi2"].values,
-            len(df_deg.index.values),
-            len(df_deg.index.values),
-        )
-
+        cell_nr = len(df_deg.index.values)
+        if (cell_nr == 50*50) and \
+           (len(np.unique(df_deg["e"].values)) == 50) and \
+           (len(np.unique(df_deg["shear"].values)) == 50):
+            print(filename)
+            value_maps[:, :, indx] = make_map(
+                df_deg.index.values,
+                df_deg["chi2"].values,
+                grid_cells_x,
+                grid_cells_y,
+            )
+        else:
+            continue
 
 da = xr.DataArray(
     value_maps,
-    coords=[df_deg["e"].values, df_deg["shear"].values],
-    dims=["ellipticity", "shear"],
+    coords=[ellipticity_coord, shear_coord, np.arange(len(files))],
+    dims=["ellipticity", "shear", "lensID"],
 )
-da.to_netcdf("./ellipticity_shear_deg.nc")
+da.to_netcdf("./check_ellipticity_shear_deg.nc")
 
 # Run through files
 files = profile_files = glob.glob(args["outdirstr"] + "fitH0_*.chi")
@@ -118,37 +121,25 @@ for filename in files:
             names=[
                 "h",
                 "chi2_%s" % system_id,
-                "pos",
-                "flux",
-                "tdel",
-                "gal",
-                "plim",
-                "crv",
-                "ring",
             ],
+            usecols=["h", "chi2_%s" % system_id],
             index_col="h",
-            usecols="chi2_%s" % system_id,
         )
-        init = 0
+        if len(df_H0.index.values) == 101:
+            print(filename)
+            init = 0
     else:
         df_H0_new = pd.read_csv(
             filename,
             sep=" ",
             skiprows=1,
             names=[
-                "h",
                 "chi2_%s" % system_id,
-                "pos",
-                "flux",
-                "tdel",
-                "gal",
-                "plim",
-                "crv",
-                "ring",
             ],
-            index_col="h",
-            usecols="chi2_%s" % system_id,
+            usecols=["chi2_%s" % system_id],
         )
-        df_H0.join(df_H0_new)
+        if len(df_H0_new.index.values) == 101:
+            print(filename)
+            df_H0.join(df_H0_new)
 
-df_H0.to_hdf("./EDA_H0_" + args["infile"], key="df_H0")
+df_H0.to_hdf("./check_H0_" + args["infile"], key="df_H0")
