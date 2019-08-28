@@ -48,17 +48,15 @@ for indx, filename in enumerate(files):
             filename,
             sep=" ",
             skiprows=3,
-            names=[
-                "e",
-                "shear",
-                "chi2",
-            ],
+            names=["e", "shear", "chi2"],
             usecols=["e", "shear", "chi2"],
         )
         cell_nr = len(df_deg.index.values)
-        if (cell_nr == 50*50) and \
-           (len(np.unique(df_deg["e"].values)) == 50) and \
-           (len(np.unique(df_deg["shear"].values)) == 50):
+        if (
+            (cell_nr == 50 * 50)
+            and (len(np.unique(df_deg["e"].values)) == 50)
+            and (len(np.unique(df_deg["shear"].values)) == 50)
+        ):
             print(filename)
             grid_cells_x = int(np.sqrt(len(df_deg.index.values)))
             grid_cells_y = int(np.sqrt(len(df_deg.index.values)))
@@ -66,10 +64,7 @@ for indx, filename in enumerate(files):
             shear_coord = np.unique(df_deg["shear"].values)
             value_maps = np.zeros((grid_cells_x, grid_cells_y, len(files)))
             value_maps[:, :, indx] = make_map(
-                df_deg.index.values,
-                df_deg["chi2"].values,
-                grid_cells_x,
-                grid_cells_y,
+                df_deg.index.values, df_deg["chi2"].values, grid_cells_x, grid_cells_y
             )
             init = 0
         else:
@@ -79,23 +74,18 @@ for indx, filename in enumerate(files):
             filename,
             sep=" ",
             skiprows=3,
-            names=[
-                "e",
-                "shear",
-                "chi2",
-            ],
+            names=["e", "shear", "chi2"],
             usecols=["e", "shear", "chi2"],
         )
         cell_nr = len(df_deg.index.values)
-        if (cell_nr == 50*50) and \
-           (len(np.unique(df_deg["e"].values)) == 50) and \
-           (len(np.unique(df_deg["shear"].values)) == 50):
+        if (
+            (cell_nr == 50 * 50)
+            and (len(np.unique(df_deg["e"].values)) == 50)
+            and (len(np.unique(df_deg["shear"].values)) == 50)
+        ):
             print(filename)
             value_maps[:, :, indx] = make_map(
-                df_deg.index.values,
-                df_deg["chi2"].values,
-                grid_cells_x,
-                grid_cells_y,
+                df_deg.index.values, df_deg["chi2"].values, grid_cells_x, grid_cells_y
             )
         else:
             continue
@@ -118,10 +108,7 @@ for filename in files:
             filename,
             sep=" ",
             skiprows=1,
-            names=[
-                "h",
-                "chi2_%s" % system_id,
-            ],
+            names=["h", "chi2_%s" % system_id],
             usecols=["h", "chi2_%s" % system_id],
             index_col="h",
         )
@@ -133,13 +120,14 @@ for filename in files:
             filename,
             sep=" ",
             skiprows=1,
-            names=[
-                "chi2_%s" % system_id,
-            ],
-            usecols=["chi2_%s" % system_id],
+            names=["h", "chi2_%s" % system_id],
+            usecols=["h", "chi2_%s" % system_id],
+            index_col="h",
         )
         if len(df_H0_new.index.values) == 101:
             print(filename)
             df_H0.join(df_H0_new)
+            df_H0 = df_H0.assign(df_H0_new["chi2_%s" % system_id])
 
-df_H0.to_hdf("./check_H0_" + args["infile"], key="df_H0")
+fname = ("./check_H0_" + args["infile"]).replace("json", "h5")
+df_H0.to_hdf(fname, key="df_H0")
