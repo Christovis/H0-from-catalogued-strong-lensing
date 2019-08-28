@@ -3,8 +3,8 @@ echo "for systems ${1} producing ${2} multi.-images version ${3}"
 echo "from the dataset file ${14}"
 
 # Dataset options
-los=$1  # with_los
-nimgs=$2   # 4
+los=$1
+nimgs=$2
 version=$3  # version(nimgs=4)=[a,b] ; version(nimgs=2)=[a,b,c]
 infile="../${14}"
 if [ "${13}" == "yes" ]; then

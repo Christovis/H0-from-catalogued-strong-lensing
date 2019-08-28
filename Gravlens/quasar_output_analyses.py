@@ -126,8 +126,8 @@ for filename in files:
         )
         if len(df_H0_new.index.values) == 101:
             print(filename)
-            df_H0.join(df_H0_new)
-            df_H0 = df_H0.assign(df_H0_new["chi2_%s" % system_id])
+            df_H0["chi2_%s" % system_id] = df_H0_new["chi2_%s" % system_id].values
 
 fname = ("./check_H0_" + args["infile"]).replace("json", "h5")
+print(fname)
 df_H0.to_hdf(fname, key="df_H0")
