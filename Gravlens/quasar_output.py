@@ -12,18 +12,28 @@ import json
 
 args = {}
 args["outdirstr"] = sys.argv[1]
-args["los"] = sys.argv[2]
-args["nimgs"] = sys.argv[3]
-args["extkappa"] = sys.argv[4]
-args["infile"] = sys.argv[5]
-
+args["infile"] = sys.argv[2]
+args["los"] = sys.argv[3]
+args["nimgs"] = sys.argv[4]
+args["extkappa"] = sys.argv[5]
+args["restart_key"] = np.array(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])
+args["restart_val"] = np.array([
+    int(sys.argv[6]), int(sys.argv[7]), int(sys.argv[8]), int(sys.argv[9]), 
+    int(sys.argv[10]), int(sys.argv[11]), int(sys.argv[12]), int(sys.argv[13]),
+    int(sys.argv[14])
+])
+args["restart_key"] = args["restart_key"][args["restart_val"] != 0]
+args["restart_val"] = args["restart_val"][args["restart_val"] != 0]
 outdir = os.fsencode(args["outdirstr"])
 
 resdir = []  # initialize output dictionary
 
-# Run through files
-files = glob.glob(args["outdirstr"] + "fit5_*.dat")
-files = [ff for ff in files if not '-' in ff]
+# Run through files of last optimization step
+last_opt_id = len(args["restart_key"])
+files = glob.glob(args["outdirstr"] + "fitH0_*.best")   #%d_*.dat" % (last_opt_id-1))
+print(files[0])
+#files = [ff for ff in files if not '-' in ff]
+#print(files[0])
 print("There are %d files in %s" % (len(files), args["outdirstr"]))
 
 for filename in files:
@@ -31,7 +41,6 @@ for filename in files:
 
     filename_Rein = args["outdirstr"] + "Rein_" + system_id
     if glob.glob(filename_Rein):
-        print("Rein_ file exists for %s" % system_id)
         with open(filename_Rein, "r") as f:
             lines = f.readlines()
             Re = lines[0].split()[0]
@@ -211,7 +220,14 @@ for filename in files:
                 "dt_4": dt_4,
             }
         )
-
-
-with open("./results_" + args["infile"], "w") as fout:
+        
+if args["extkappa"] == "yes":
+    args["extkappa"] = "_extkappa"
+else:
+    args["extkappa"] = ""
+fname = ("./results%s_%s" % (args["extkappa"], args["infile"])).replace('.json', '')
+for ii in range(len(args["restart_key"])):
+    fname += "_r" + args["restart_key"][ii]+str(args["restart_val"][ii])
+fname += '.json'
+with open(fname, "w") as fout:
     json.dump(resdir, fout)

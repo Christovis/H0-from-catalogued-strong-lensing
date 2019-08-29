@@ -17,18 +17,19 @@ infile=limg_catalogs_${los}_${nimgs}_${version}.json
 
 # Optimisation parameters                                                        
 opt_explore=0 # random parametere exploration
-restarts_1=1  # at fixed shear, reoptimize galaxy mass and e/PA                  
-restarts_2=1  # optimize position angle with shear angle
-restarts_3=2  # optimize ellipticity with shear 
-restarts_4=1  # optimize shear along with galaxy mass and e/PA                   
-restarts_5=0  # optimize density slope while keeping rest fixed                  
-restarts_6=3  # optimize everything                                              
-restarts_7=0  # analyse degeneracy between ellipticity with shear 
-restarts_8=0  # analyse uncertainty of H0
+restarts_a=1  # at fixed shear, reoptimize galaxy mass and e/PA                  
+restarts_b=1  # optimize position angle with shear angle
+restarts_c=2  # optimize ellipticity with shear 
+restarts_d=0  # analyse degeneracy between ellipticity with shear 
+restarts_e=1  # optimize shear along with galaxy mass and e/PA                   
+restarts_f=0  # optimize density slope while keeping rest fixed                  
+restarts_g=3  # optimize everything                                              
+restarts_h=0  # analyse degeneracy between ellipticity with shear 
+restarts_i=1  # analyse uncertainty of H0
 ext_kappa_file=yes  #[yes, no] use external kappa if known
 
 # Create .input #################################################################
-./quasar_input.bash $los $nimgs $version $restarts_1 $restarts_2 $restarts_3 $restarts_4 $restarts_5 $restarts_6 $restarts_7 $restarts_8 $opt_explore $ext_kappa_file $infile &&
+./quasar_input.bash $los $nimgs $version $restarts_a $restarts_b $restarts_c $restarts_d $restarts_e $restarts_f $restarts_g $restarts_h $restarts_i $opt_explore $ext_kappa_file $infile &&
 
 # Run Gravlens ##################################################################
 # nimgs=2 & a,b -> 1019
@@ -38,6 +39,6 @@ ext_kappa_file=yes  #[yes, no] use external kappa if known
 
 # Output results in .json #######################################################
 check=no  # analyize optimisation resuts
-./quasar_output.bash $los $nimgs $ext_kappa_file $infile $check
+./quasar_output.bash $infile $los $nimgs $ext_kappa_file $check $restarts_a $restarts_b $restarts_c $restarts_d $restarts_e $restarts_f $restarts_g $restarts_h $restarts_i
 
 exit

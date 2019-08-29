@@ -39,12 +39,13 @@ def sl_sys_analysis():
         args["restart_6"] = sys.argv[10]
         args["restart_7"] = sys.argv[11]
         args["restart_8"] = sys.argv[12]
-        args["opt_explore"] = sys.argv[13]
-        args["pos_error"] = sys.argv[14]
-        args["mu_error"] = sys.argv[15]
-        args["dt_error"] = sys.argv[16]
-        args["ext_kappa"] = sys.argv[17]
-        args["use_ext_kappa"] = sys.argv[18]
+        args["restart_9"] = sys.argv[13]
+        args["opt_explore"] = sys.argv[14]
+        args["pos_error"] = sys.argv[15]
+        args["mu_error"] = sys.argv[16]
+        args["dt_error"] = sys.argv[17]
+        args["ext_kappa"] = sys.argv[18]
+        args["use_ext_kappa"] = sys.argv[19]
         print('args["ext_kappa"]', args["ext_kappa"])
         print('args["use_ext_kappa"]', args["use_ext_kappa"])
 
@@ -113,7 +114,7 @@ def sl_sys_analysis():
         text_file.write("# Cosmological parameters\n")
         text_file.write("set omega = 0.3089\n")
         text_file.write("set lambda = 0.6911\n")
-        text_file.write("set hvale = 1.0e2\n")
+        text_file.write("set hvale = 1.0e6\n")  #1e6 forces to use time-delays
         text_file.write("set zlens = %f\n" % system_prior['zl'])
         text_file.write("set zsrc = 2.0\n")
         text_file.write("\n")
@@ -213,6 +214,19 @@ def sl_sys_analysis():
             text_file.write("\n")
             optimized_file_nr += 1
         if int(args["restart_4"]) > 0:
+            # 7th Analyze: Ellipticity and Shear degeneracy
+            text_file.write("# 7th Opt.: optimize everything\n")
+            text_file.write("set restart = %s\n" % args["restart_7"])
+            text_file.write("setlens %s.start\n" % fit_name)
+            text_file.write("changevary 1\n")
+            text_file.write("1 0 0 0 1 0 1 0 0 0\n")
+            if args["use_ext_kappa"] == "yes":
+                text_file.write("0 0 0 0 0 0 0 0 0 0\n")
+            fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
+            text_file.write("varytwo 1 4 0.0 0.99 50 1 6 0.0 0.99 50 %s\n" % fit_name)
+            text_file.write("\n")
+            optimized_file_nr += 1
+        if int(args["restart_5"]) > 0:
             # 4th Optimization: optimize shear along with galaxy mass and e/PA
             text_file.write("# 4th Opt.: optimize shear along with galaxy mass and e/PA\n")
             text_file.write("set restart = %s\n" % args["restart_4"])
@@ -222,11 +236,10 @@ def sl_sys_analysis():
             if args["use_ext_kappa"] == "yes":
                 text_file.write("0 0 0 0 0 0 0 0 0 0\n")
             fit_name = args["outbase"] + "/fit%d_%d" % (optimized_file_nr, ii)
-            text_file.write("optimize %s\n" % fit_name)
-            #text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
+            text_file.write("varyone 1 7 -90 90 37 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
-        if int(args["restart_5"]) > 0:
+        if int(args["restart_6"]) > 0:
             # 5th Optimization: optimize density slope
             text_file.write("# 5th Opt.: optimize density slope\n")
             text_file.write("set restart = %s\n" % args["restart_5"])
@@ -240,7 +253,7 @@ def sl_sys_analysis():
             #text_file.write("varyone 1 10 0.5 5 37 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
-        if int(args["restart_6"]) > 0:
+        if int(args["restart_7"]) > 0:
             # 6th Optimization: optimize everything
             text_file.write("# 6th Opt.: optimize everything\n")
             text_file.write("set restart = %s\n" % args["restart_6"])
@@ -253,7 +266,7 @@ def sl_sys_analysis():
             text_file.write("optimize %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
-        if int(args["restart_7"]) > 0:
+        if int(args["restart_8"]) > 0:
             # 7th Analyze: Ellipticity and Shear degeneracy
             text_file.write("# 7th Opt.: optimize everything\n")
             text_file.write("set restart = %s\n" % args["restart_7"])
@@ -266,13 +279,14 @@ def sl_sys_analysis():
             text_file.write("varytwo 1 4 0.0 0.99 50 1 6 0.0 0.99 50 %s\n" % fit_name)
             text_file.write("\n")
             optimized_file_nr += 1
-        # Fourth Optimization: H0
-        text_file.write("# 5th Opt.: optimize H0\n")
-        text_file.write("set restart = %s\n" % args["restart_8"])
-        text_file.write("setlens %s.start\n" % fit_name)
-        fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
-        text_file.write("varyh 0.2 1.2 101 %s\n" % fitH0_name)
-        text_file.write("\n")
+        if int(args["restart_9"]) > 0:
+            # Fourth Optimization: H0
+            text_file.write("# 5th Opt.: optimize H0\n")
+            text_file.write("set restart = %s\n" % args["restart_8"])
+            text_file.write("setlens %s.start\n" % fit_name)
+            fitH0_name = args["outbase"] + "/fitH0_" + str(ii)  # str(system["losID"])
+            text_file.write("varyh 0.2 1.2 101 %s\n" % fitH0_name)
+            text_file.write("\n")
         Rein_name = args["outbase"] + "/Rein_" + str(ii)  # str(system["losID"])
         text_file.write("calcRein %d %s\n" % (optimized_file_nr, Rein_name))
         text_file.write("1 1 0.5 2 19\n")
