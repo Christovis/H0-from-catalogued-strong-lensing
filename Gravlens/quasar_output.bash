@@ -20,10 +20,10 @@ restarts_i=${14}
 module unload python
 module load python/3.6.5
 
-python3 ./quasar_output.py $inbase $infile $los $nimgs $ext_kappa_file $restarts_a $restarts_b $restarts_c $restarts_d $restarts_e $restarts_f $restarts_g $restarts_h $restarts_i 
+#python3 ./quasar_output.py $inbase $infile $los $nimgs $ext_kappa_file $restarts_a $restarts_b $restarts_c $restarts_d $restarts_e $restarts_f $restarts_g $restarts_h $restarts_i 
 
 if [ "$check" == "yes" ]; then 
-    python3 ./quasar_output_analyses.py $inbase $los $nimgs $ext_kappa_file
+    python3 ./quasar_output_analyses.py $inbase $infile $los $nimgs $ext_kappa_file 
 fi 
 
 

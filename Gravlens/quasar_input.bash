@@ -39,4 +39,4 @@ dt_error=0.05    #[hours]
 module unload python
 module load python/3.6.5
 
-mpirun -np 15 python3 ./quasar_input.py $infile $inbase $outbase $los $restarts_1 $restarts_2 $restarts_3 $restarts_4 $restarts_5 $restarts_6 $restarts_7 $restarts_8 $restarts_9 $opt_explore $pos_error $mu_error $dt_error $extkappa ${13}
+mpirun -np 15 python3 ./quasar_input.py $infile $inbase $outbase $los $restarts_1 $restarts_2 $restarts_3 $restarts_4 $restarts_5 $restarts_6 $restarts_7 $restarts_8 $restarts_9 $opt_explore $pos_error $mu_error $dt_error $extkappa ${14}

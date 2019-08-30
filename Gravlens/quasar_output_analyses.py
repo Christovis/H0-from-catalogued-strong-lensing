@@ -24,13 +24,12 @@ def make_map(ids, values, Nx, Ny):
             k += 1
     return map_out
 
-
 args = {}
 args["outdirstr"] = sys.argv[1]
-args["los"] = sys.argv[2]
-args["nimgs"] = sys.argv[3]
-args["extkappa"] = sys.argv[4]
-args["infile"] = sys.argv[5]
+args["infile"] = sys.argv[2]
+args["los"] = sys.argv[3]
+args["nimgs"] = sys.argv[4]
+args["extkappa"] = sys.argv[5]
 
 outdir = os.fsencode(args["outdirstr"])
 
@@ -41,6 +40,7 @@ files = profile_files = glob.glob(args["outdirstr"] + "fit6_*.chi")
 
 init = 1
 for indx, filename in enumerate(files):
+    filename = "./Quasars/results/with_los/nimgs_2/fit6_215.chi"
     system_id = filename.split("_")[-1].split(".")[0]
 
     if init:
@@ -52,23 +52,26 @@ for indx, filename in enumerate(files):
             usecols=["e", "shear", "chi2"],
         )
         cell_nr = len(df_deg.index.values)
-        if (
-            (cell_nr == 50 * 50)
-            and (len(np.unique(df_deg["e"].values)) == 50)
-            and (len(np.unique(df_deg["shear"].values)) == 50)
-        ):
-            print(filename)
-            grid_cells_x = int(np.sqrt(len(df_deg.index.values)))
-            grid_cells_y = int(np.sqrt(len(df_deg.index.values)))
-            ellipticity_coord = np.unique(df_deg["e"].values)
-            shear_coord = np.unique(df_deg["shear"].values)
-            value_maps = np.zeros((grid_cells_x, grid_cells_y, len(files)))
-            value_maps[:, :, indx] = make_map(
-                df_deg.index.values, df_deg["chi2"].values, grid_cells_x, grid_cells_y
-            )
-            init = 0
-        else:
-            continue
+        print(len(np.unique(df_deg["e"].values)))
+        print(len(np.unique(df_deg["shear"].values)))
+        #if (
+        #    (cell_nr == 50 * 50)
+        #    and (len(np.unique(df_deg["e"].values)) == 50)
+        #    and (len(np.unique(df_deg["shear"].values)) == 50)
+        #):
+        print(filename)
+        grid_cells_x = int(np.sqrt(len(df_deg.index.values)))
+        grid_cells_y = int(np.sqrt(len(df_deg.index.values)))
+        ellipticity_coord = np.unique(df_deg["e"].values)
+        shear_coord = np.unique(df_deg["shear"].values)
+        value_maps = np.zeros((grid_cells_x, grid_cells_y, len(files)))
+        value_maps[:, :, indx] = make_map(
+            df_deg.index.values, df_deg["chi2"].values, grid_cells_x, grid_cells_y
+        )
+        init = 0
+        #else:
+        #    continue
+        break
     else:
         df_deg = pd.read_csv(
             filename,
@@ -92,10 +95,11 @@ for indx, filename in enumerate(files):
 
 da = xr.DataArray(
     value_maps,
-    coords=[ellipticity_coord, shear_coord, np.arange(len(files))],
+    coords=[ellipticity_coord, shear_coord, np.arange(indx)],
     dims=["ellipticity", "shear", "lensID"],
 )
-da.to_netcdf("./check_ellipticity_shear_deg.nc")
+da.to_netcdf("./check_ellipticity_shear_deg_215.nc")
+#da.to_netcdf("./check_ellipticity_shear_deg.nc")
 
 # Run through files
 files = profile_files = glob.glob(args["outdirstr"] + "fitH0_*.chi")
