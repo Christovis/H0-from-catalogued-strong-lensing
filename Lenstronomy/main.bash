@@ -10,7 +10,7 @@
 
 # Dataset options
 los=with_los
-nimgs=4
+nimgs=2
 version=b  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
 infile=../limg_catalogs_${los}_${nimgs}_${version}.json
 
@@ -25,4 +25,4 @@ astrometry_sigma=0.004 # 1-sigma astrometric uncertainties of the image position
 module unload python
 module load python/3.6.5
 
-mpirun -np 1 python3 ./quasar_run.py $infile $nimgs $los $version $dt_sigma $image_amps_sigma $flux_ratio_error $astrometry_sigma
+mpirun -np 1 python3 ./quasar_run_092.py $infile $nimgs $los $version $dt_sigma $image_amps_sigma $flux_ratio_error $astrometry_sigma

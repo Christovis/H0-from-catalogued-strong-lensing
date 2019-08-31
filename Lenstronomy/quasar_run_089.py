@@ -64,7 +64,7 @@ def sl_sys_analysis():
     for ii in range(len(systems))[(start_sys + 2) : end_sys]:
         system = systems[ii]
         system_prior = systems_prior[ii]
-        print("Analysing system ID: %d" % system["losID"])
+        print("Analysing system ID: %d" % ii)
         print(system)
         # the data set is
         z_lens = system_prior["zl"]
@@ -340,7 +340,16 @@ def sl_sys_analysis():
         # plot = corner.corner(mcmc_new_list, labels=labels_new, show_titles=True)
         # and here the predicted angular diameter distance from a
         # default cosmology (attention for experimenter bias!)
-        lensCosmo = LensCosmo(z_lens=z_lens, z_source=z_source)
+        cosmo = FlatLambdaCDM(
+            H0=71,
+            Om0=0.3089,
+            Ob0=0.,
+        )
+        lensCosmo = LensCosmo(
+            cosmo=cosmo,
+            z_lens=z_lens,
+            z_source=z_source,
+        )
         gamma = np.mean(gamma)
         phi_ext = np.mean(phi_ext)
         gamma_ext = np.mean(gamma_ext)
