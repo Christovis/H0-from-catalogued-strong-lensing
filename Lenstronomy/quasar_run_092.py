@@ -62,54 +62,66 @@ def sl_sys_analysis():
         print("Each process will have %d systems" % sys_nr_per_proc)
         print("That should take app. %f min." % (sys_nr_per_proc * 20))
 
+    source_size_pc = 10.0
+    window_size = 0.1  # units of arcseconds
+    grid_number = 100  # supersampled window (per axis)
+    z_source = 2.0
+    cosmo = FlatLambdaCDM(H0=71, Om0=0.3089, Ob0=0.0)
+
     results = {"gamma": [], "phi_ext": [], "gamma_ext": [], "theta_E": [], "D_dt": []}
     for ii in range(len(systems))[(start_sys + 2) : end_sys]:
         system = systems[ii]
         system_prior = systems_prior[ii]
         print("Analysing system ID: %d" % ii)
+
         # the data set is
         z_lens = system_prior["zl"]
-        z_source = 2.0
-        
-        window_size = 0.1  # units of arcseconds
-        grid_number = 100  # supersampled window (per axis)
-
-        cosmo = FlatLambdaCDM(H0=71, Om0=0.3089, Ob0=0.0)
         lensCosmo = LensCosmo(cosmo=cosmo, z_lens=z_lens, z_source=z_source)
+        # convert units of pc into arcseconds
+        D_s = lensCosmo.D_s
+        source_size_arcsec = source_size_pc / 10 ** 6 / D_s / constants.arcsec
 
         # multiple images properties
         ximg = np.zeros(system["nimgs"])
         yimg = np.zeros(system["nimgs"])
-        delay = np.zeros(system["nimgs"])
+        t_days = np.zeros(system["nimgs"])
         image_amps = np.zeros(system["nimgs"])
         for jj in range(system["nimgs"]):
             ximg[jj] = system["ximg"][jj]  # [arcsec]
             yimg[jj] = system["yimg"][jj]  # [arcsec]
-            delay[jj] = system["delay"][jj]  # [days]
+            t_days[jj] = system["delay"][jj]  # [days]
             image_amps[jj] = system["mags"][jj]  # [linear units or magnitudes]
         # sort by arrival time
-        index_sort = np.argsort(delay)
-        ximg = ximg[index_sort]
-        yimg = yimg[index_sort]
-        delay = delay[index_sort]
-        image_amps = image_amps[index_sort]
-        d_dt = delay[1:] - delay[0]
+        index_sort = np.argsort(t_days)
+        ximg = ximg[index_sort]  # relative RA (arc seconds)
+        yimg = yimg[index_sort]  # relative DEC (arc seconds)
+        image_amps = np.abs(image_amps[index_sort])
+        t_days = t_days[index_sort]
+        d_dt = t_days[1:] - t_days[0]
+
         # measurement uncertainties
-        d_dt_sigma = np.ones(system["nimgs"] - 1) * args["dt_sigma"]
+        astrometry_sigma = args["astrometry_sigma"]
+        ximg_measured = ximg + np.random.normal(0, astrometry_sigma, system["nimgs"])
+        yimg_measured = yimg + np.random.normal(0, astrometry_sigma, system["nimgs"])
         image_amps_sigma = np.ones(system["nimgs"]) * args["image_amps_sigma"]
         flux_ratios = image_amps[1:] - image_amps[0]
         flux_ratio_errors = np.ones(system["nimgs"] - 1) * args["flux_ratio_errors"]
-        # keyword list with all the data elements.
+        flux_ratios_measured = flux_ratios + np.random.normal(0, flux_ratio_errors)
+        d_dt_sigma = np.ones(system["nimgs"] - 1) * args["dt_sigma"]
+        d_dt_measured = d_dt + np.random.normal(0, d_dt_sigma)
+
         kwargs_data_joint = {
-            "time_delays_measured": d_dt,
+            "time_delays_measured": d_dt_measured,
             "time_delays_uncertainties": d_dt_sigma,
-            "flux_ratios": flux_ratios,
+            "flux_ratios": flux_ratios_measured,
             "flux_ratio_errors": flux_ratio_errors,
+            "ra_image_list": [ximg_measured],
+            "dec_image_list": [yimg_measured],
         }
 
         # lens model choices
         lens_model_list = ["SPEMD", "SHEAR_GAMMA_PSI"]
-        
+
         # first choice: SPEP
         fixed_lens = []
         kwargs_lens_init = []
@@ -215,15 +227,12 @@ def sl_sys_analysis():
         kwargs_special_sigma = {}
         kwargs_lower_special = {}
         kwargs_upper_special = {}
-        # we chose a finite source size of the emitting 'point source' region
-        source_size_pc = 10. # Gaussian source size in units of parsec
-        # convert the units of pc into arcseconds
-        D_s = lensCosmo.D_s
-        source_size_arcsec = source_size_pc / 10**6 / D_s / constants.arcsec
+
         fixed_special["source_size"] = source_size_arcsec
         kwargs_special_init["source_size"] = source_size_arcsec
         kwargs_special_sigma["source_size"] = source_size_arcsec
         kwargs_lower_special["source_size"] = 0.0001
+        kwargs_upper_special["source_size"] = 1
 
         # Time-delay distance
         kwargs_special_init["D_dt"] = 5000
@@ -260,16 +269,16 @@ def sl_sys_analysis():
         flux_ratio_likelihood = True
         image_position_likelihood = True
         kwargs_flux_compute = {
-            'source_type': 'INF',
-            'window_size': window_size,
-            'grid_number': grid_number,
+            "source_type": "INF",
+            "window_size": window_size,
+            "grid_number": grid_number,
         }
-        
+
         kwargs_constraints = {
             "num_point_source_list": [int(args["nimgs"])],
             # any proposed lens model must satisfy the image positions
             # appearing at the position of the point sources being sampeld
-            #"solver_type": "PROFILE_SHEAR",
+            # "solver_type": "PROFILE_SHEAR",
             "Ddt_sampling": time_delay_likelihood,
             # sampling of the time-delay distance
             # explicit modelling of the astrometric imperfection of
@@ -304,7 +313,6 @@ def sl_sys_analysis():
             "check_bounds": True,
         }
 
-        mpi = False  # MPI possible, but not supported through that notebook.
         fitting_seq = FittingSequence(
             kwargs_data_joint,
             kwargs_model,
@@ -313,7 +321,7 @@ def sl_sys_analysis():
             kwargs_params,
         )
         fitting_kwargs_list = [
-            ["PSO", {"sigma_scale": 1.0, "n_particles": 100, "n_iterations": 100}]
+            ["PSO", {"sigma_scale": 1.0, "n_particles": 200, "n_iterations": 500}]
         ]
 
         chain_list_pso = fitting_seq.fit_sequence(fitting_kwargs_list)
@@ -346,23 +354,6 @@ def sl_sys_analysis():
         # the number of non-linear parameters and their names #
         num_param, param_list = param.num_param()
 
-        mcmc_new_list = []
-        labels_new = [
-            r"$\theta_E$",
-            r"$\gamma$",
-            r"$\phi_{lens}$",
-            r"$q$",
-            r"$\phi_{ext}$",
-            r"$\gamma_{ext}$",
-        ]
-        if flux_ratio_likelihood is True:
-            labels_new.extend(["B/A", "C/A", "D/A"])
-        if kwargs_constraints.get("source_size", False) is True:
-            if "source_size" not in fixed_special:
-                labels_new.append("source size")
-        if time_delay_likelihood is True:
-            labels_new.append(r"$D_{dt}$")
-
         for i in range(len(samples_mcmc)):
             kwargs_out = param.args2kwargs(samples_mcmc[i])
             kwargs_lens_out, kwargs_special_out, kwargs_ps_out = (
@@ -384,43 +375,31 @@ def sl_sys_analysis():
                 kwargs_lens_out[1]["psi_ext"] % np.pi,
                 kwargs_lens_out[1]["gamma_ext"],
             )
-            new_chain = [theta_E, gamma, phi, q, phi_ext, gamma_ext]
             if flux_ratio_likelihood is True:
                 mag = lensModel.magnification(x_pos, y_pos, kwargs_lens_out)
                 flux_ratio_fit = mag[1:] / mag[0]
-                new_chain.extend(
-                    [flux_ratio_fit[0], flux_ratio_fit[1], flux_ratio_fit[2]]
-                )
             if (
                 kwargs_constraints.get("source_size", False) is True
                 and "source_size" not in fixed_special
             ):
                 source_size = kwargs_special_out["source_size"]
-                new_chain.append(source_size)
             if time_delay_likelihood is True:
                 D_dt = kwargs_special_out["D_dt"]
-                new_chain.append(D_dt)
 
-            # source_size = np.random.uniform(high=1, low=0)
-            mcmc_new_list.append(np.array(new_chain))
-
-        # plot = corner.corner(mcmc_new_list, labels=labels_new, show_titles=True)
         # and here the predicted angular diameter distance from a
         # default cosmology (attention for experimenter bias!)
-        gamma = np.mean(gamma)
-        phi_ext = np.mean(phi_ext)
-        gamma_ext = np.mean(gamma_ext)
-        theta_E = np.mean(theta_E)
+        gamma = np.median(gamma)
+        phi_ext = np.median(phi_ext)
+        gamma_ext = np.median(gamma_ext)
+        theta_E = np.median(theta_E)
+        D_dt = np.median(D_dt)
         results["gamma"].append(gamma)
         results["phi_ext"].append(phi_ext)
         results["gamma_ext"].append(gamma_ext)
         results["theta_E"].append(theta_E)
-        results["D_dt"].append(lensCosmo.D_dt)
+        results["H0"].append(c_light / D_dt)
 
-    with open(
-        "./quasars_%s_nimgs_%s_%s.json" % (args["los"], args["nimgs"], args["version"]),
-        "w",
-    ) as fout:
+    with open("./results_%s" % (args["infile"]), "w") as fout:
         json.dump(results, fout)
 
 
