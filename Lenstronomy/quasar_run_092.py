@@ -1,12 +1,19 @@
 import sys
 import numpy as np
 import corner
+
+from astropy.cosmology import FlatLambdaCDM
+
 import lenstronomy
-from lenstronomy.Workflow.fitting_sequence import FittingSequence
-from lenstronomy.Sampling.parameters import Param
+from lenstronomy.Util import constants
 import lenstronomy.Util.param_util as param_util
-from lenstronomy.Analysis.lens_analysis import LensAnalysis
+from lenstronomy.Sampling.parameters import Param
 from lenstronomy.Cosmo.lens_cosmo import LensCosmo
+from lenstronomy.LensModel.lens_model import LensModel
+from lenstronomy.Analysis.lens_analysis import LensAnalysis
+from lenstronomy.Workflow.fitting_sequence import FittingSequence
+from lenstronomy.LensModel.lens_model_extensions import LensModelExtensions
+from lenstronomy.LensModel.Solver.lens_equation_solver import LensEquationSolver
 
 # import fastell4py
 import time
@@ -60,10 +67,15 @@ def sl_sys_analysis():
         system = systems[ii]
         system_prior = systems_prior[ii]
         print("Analysing system ID: %d" % ii)
-        print(system)
         # the data set is
         z_lens = system_prior["zl"]
         z_source = 2.0
+        
+        window_size = 0.1  # units of arcseconds
+        grid_number = 100  # supersampled window (per axis)
+
+        cosmo = FlatLambdaCDM(H0=71, Om0=0.3089, Ob0=0.0)
+        lensCosmo = LensCosmo(cosmo=cosmo, z_lens=z_lens, z_source=z_source)
 
         # multiple images properties
         ximg = np.zeros(system["nimgs"])
@@ -96,7 +108,8 @@ def sl_sys_analysis():
         }
 
         # lens model choices
-        lens_model_list = ["SPEP", "SHEAR"]
+        lens_model_list = ["SPEMD", "SHEAR_GAMMA_PSI"]
+        
         # first choice: SPEP
         fixed_lens = []
         kwargs_lens_init = []
@@ -197,6 +210,16 @@ def sl_sys_analysis():
         ]
 
         # quasar source size
+        fixed_special = {}
+        kwargs_special_init = {}
+        kwargs_special_sigma = {}
+        kwargs_lower_special = {}
+        kwargs_upper_special = {}
+        # we chose a finite source size of the emitting 'point source' region
+        source_size_pc = 10. # Gaussian source size in units of parsec
+        # convert the units of pc into arcseconds
+        D_s = lensCosmo.D_s
+        source_size_arcsec = source_size_pc / 10**6 / D_s / constants.arcsec
         fixed_special["source_size"] = source_size_arcsec
         kwargs_special_init["source_size"] = source_size_arcsec
         kwargs_special_sigma["source_size"] = source_size_arcsec
@@ -228,13 +251,25 @@ def sl_sys_analysis():
             "lens_model_list": lens_model_list,
             "point_source_model_list": point_source_list,
         }
+        lensModel = LensModel(kwargs_model["lens_model_list"])
+        lensModelExtensions = LensModelExtensions(lensModel=lensModel)
+        lensEquationSolver = LensEquationSolver(lensModel=lensModel)
 
         # setup options for likelihood and parameter sampling
+        time_delay_likelihood = True
+        flux_ratio_likelihood = True
+        image_position_likelihood = True
+        kwargs_flux_compute = {
+            'source_type': 'INF',
+            'window_size': window_size,
+            'grid_number': grid_number,
+        }
+        
         kwargs_constraints = {
             "num_point_source_list": [int(args["nimgs"])],
             # any proposed lens model must satisfy the image positions
             # appearing at the position of the point sources being sampeld
-            "solver_type": "PROFILE_SHEAR",
+            #"solver_type": "PROFILE_SHEAR",
             "Ddt_sampling": time_delay_likelihood,
             # sampling of the time-delay distance
             # explicit modelling of the astrometric imperfection of
@@ -311,9 +346,6 @@ def sl_sys_analysis():
         # the number of non-linear parameters and their names #
         num_param, param_list = param.num_param()
 
-        lensModel = LensModel(kwargs_model["lens_model_list"])
-        lensModelExtensions = LensModelExtensions(lensModel=lensModel)
-
         mcmc_new_list = []
         labels_new = [
             r"$\theta_E$",
@@ -375,13 +407,10 @@ def sl_sys_analysis():
         # plot = corner.corner(mcmc_new_list, labels=labels_new, show_titles=True)
         # and here the predicted angular diameter distance from a
         # default cosmology (attention for experimenter bias!)
-        cosmo = FlatLambdaCDM(H0=71, Om0=0.3089, Ob0=0.0)
-        lensCosmo = LensCosmo(cosmo=cosmo, z_lens=z_lens, z_source=z_source)
         gamma = np.mean(gamma)
         phi_ext = np.mean(phi_ext)
         gamma_ext = np.mean(gamma_ext)
         theta_E = np.mean(theta_E)
-        D_dt = np.mean(D_dt)
         results["gamma"].append(gamma)
         results["phi_ext"].append(phi_ext)
         results["gamma_ext"].append(gamma_ext)
