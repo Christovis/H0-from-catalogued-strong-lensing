@@ -17,6 +17,7 @@ args["los"] = sys.argv[3]
 args["nimgs"] = sys.argv[4]
 args["extkappa"] = sys.argv[5]
 args["restart_key"] = np.array(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])
+print(sys.argv[5:])
 args["restart_val"] = np.array([
     int(sys.argv[6]), int(sys.argv[7]), int(sys.argv[8]), int(sys.argv[9]), 
     int(sys.argv[10]), int(sys.argv[11]), int(sys.argv[12]), int(sys.argv[13]),
@@ -30,10 +31,10 @@ resdir = []  # initialize output dictionary
 
 # Run through files of last optimization step
 last_opt_id = len(args["restart_key"])
-files = glob.glob(args["outdirstr"] + "fitH0_*.best")   #%d_*.dat" % (last_opt_id-1))
-print(files[0])
-#files = [ff for ff in files if not '-' in ff]
-#print(files[0])
+#files = glob.glob(args["outdirstr"] + "fitH0_*.best")
+files = glob.glob(args["outdirstr"] + "fit%d_*.dat" % (last_opt_id-1))
+files = [ff for ff in files if not '-' in ff]
+print(files[5])
 print("There are %d files in %s" % (len(files), args["outdirstr"]))
 
 for filename in files:
