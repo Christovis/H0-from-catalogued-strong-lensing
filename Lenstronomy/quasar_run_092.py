@@ -235,10 +235,10 @@ def sl_sys_analysis():
         kwargs_upper_special["source_size"] = 1
 
         # Time-delay distance
-        kwargs_special_init["D_dt"] = 5000
+        kwargs_special_init["D_dt"] = 4300   # corresponds to H0 ~ 70
         kwargs_special_sigma["D_dt"] = 3000
-        kwargs_lower_special["D_dt"] = 0
-        kwargs_upper_special["D_dt"] = 10000
+        kwargs_lower_special["D_dt"] = 2500  # corresponds to H0 ~ 120
+        kwargs_upper_special["D_dt"] = 14000 # corresponds to H0 ~ 20 
 
         special_params = [
             kwargs_special_init,

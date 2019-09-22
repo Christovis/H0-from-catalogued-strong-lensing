@@ -10,7 +10,7 @@
 
 # Dataset options
 los=with_los
-nimgs=2
+nimgs=4
 version=b  # version(nimgs=2)=[a,b] ; version(nimgs=2)=[a,b,c]
 infile=../limg_catalogs_${los}_${nimgs}_${version}.json
 
