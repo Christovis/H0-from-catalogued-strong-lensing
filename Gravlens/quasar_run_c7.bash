@@ -19,7 +19,7 @@ fi
 # nimgs=2 & a -> 1019 
 # nimgs=4 & a -> 359
 # nimgs=4 & b -> 471
-mpirun -np $4 ./parallel_tasks 0 $3 "./lensmodel ${inbase}/optimize_%d.in" #&&
+mpirun -np $4 ./parallel_tasks 0 $3 "./lensmodel_20190903 ${inbase}/optimize_%d.in" #&&
 #rm $outbase/fit1_* &&
 #rm $outbase/fit2_* &&
 #rm $outbase/fit3_* &&
