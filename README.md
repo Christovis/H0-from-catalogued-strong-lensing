@@ -1,7 +1,6 @@
 # Inferring H0 with Catalogued Strong Lensing Time-delays
 
-Code repository for the paper 
-*****The impact of line-of-sight structures on measuring the H0 with Strong Lensing Time-delays** 
+Code repository for the paper *****The impact of line-of-sight structures on measuring the $$H_0$$ with Strong Lensing Time-delays**
 by Nan Li, Christoph Becker, and Simon Dye
 
 
