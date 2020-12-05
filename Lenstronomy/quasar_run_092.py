@@ -123,7 +123,7 @@ def sl_sys_analysis():
         # lens model choices
         lens_model_list = ["SPEMD", "SHEAR_GAMMA_PSI"]
 
-        # first choice: SPEP
+        # 1. layer: primary SPEP
         fixed_lens = []
         kwargs_lens_init = []
         kwargs_lens_sigma = []
@@ -173,12 +173,19 @@ def sl_sys_analysis():
                 "center_y": 10,
             }
         )
-        # second choice: SHEAR
+        # 2nd layer: external SHEAR
         fixed_lens.append({"ra_0": 0, "dec_0": 0})
         kwargs_lens_init.append({"gamma_ext": 0.05, "psi_ext": 0.0})
         kwargs_lens_sigma.append({"gamma_ext": 0.05, "psi_ext": np.pi})
         kwargs_lower_lens.append({"gamma_ext": 0, "psi_ext": -np.pi})
         kwargs_upper_lens.append({"gamma_ext": 0.3, "psi_ext": np.pi})
+        
+        # 3rd layer: external CONVERGENCE
+		kwargs_lens_init.append({'kappa_ext': 0.12})
+		kwargs_lens_sigma.append({'kappa_ext': 0.06})
+		kwargs_lower_lens.append({'kappa_ext': 0.0})
+		kwargs_upper_lens.append({'kappa_ext': 0.3})
+        
         # combined lens model
         lens_params = [
             kwargs_lens_init,
