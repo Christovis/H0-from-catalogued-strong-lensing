@@ -80,6 +80,7 @@ def sl_sys_analysis():
         # convert units of pc into arcseconds
         D_s = lensCosmo.D_s
         source_size_arcsec = source_size_pc / 10 ** 6 / D_s / constants.arcsec
+        print("The source size in arcsec init = %.4f" % source_size_arcsec) #0.0012
 
         # multiple images properties
         ximg = np.zeros(system["nimgs"])

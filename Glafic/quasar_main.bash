@@ -22,7 +22,7 @@ opt_4=1
 opt_explore=0
 
 # Create .input #################################################################
-#./quasar_input.bash $los $nimgs $version $priors $opt_1 $opt_2 $opt_3 $opt_4 $opt_explore &&
+./quasar_input.bash $los $nimgs $version $priors $opt_1 $opt_2 $opt_3 $opt_4 $opt_explore &&
 
 # Run Gravlens ##################################################################
 # nimgs=2 & a -> 999
